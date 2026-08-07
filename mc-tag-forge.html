@@ -358,7 +358,7 @@ pre.out{margin:0;background:var(--void);border:1px solid var(--line);padding:11p
   </div>
   <textarea id="ioBox" style="display:none;margin-top:9px;min-height:80px;
     font-family:ui-monospace,Consolas,monospace;font-size:11px"></textarea>
-  <div class="note">预设存在内存里，关掉页面就没了 —— 用「导出」把 JSON 存进 txt，下次「导入」贴回来。</div>
+  <div class="note" id="presetNote"></div>
 </div>
 </div>
 
@@ -1038,9 +1038,30 @@ function showProbe(which){
 $('bProbe').onclick=()=>showProbe('s');
 $('bProbeE').onclick=()=>showProbe('e');
 
+/* 存储适配器。托管在网站上时 localStorage 可用，预设能真正落盘；
+   在 Claude artifact 沙箱里浏览器存储被禁用，读写都会抛错，
+   所以全部 try/catch 兜到内存里 —— 功能降级但不崩。 */
+const MEM={}, PKEY='mc-tag-forge:presets';
+let PERSIST=false;
+const store={
+  get(k){ try{ const v=localStorage.getItem(k); return v===null?(MEM[k]??null):v; }
+          catch(e){ return MEM[k]??null; } },
+  set(k,v){ MEM[k]=v; try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } },
+};
+function loadPresets(){
+  const raw=store.get(PKEY);
+  if(!raw) return;
+  try{ const a=JSON.parse(raw); if(Array.isArray(a)) S.presets=a; }catch(e){}
+}
+function savePresets(){ PERSIST=store.set(PKEY, JSON.stringify(S.presets)); }
+
 function snap(){return JSON.parse(JSON.stringify({runs:S.runs,wrap:S.wrap,
   nStops:S.nStops,cuts:S.cuts,stops:S.stops,enc:S.enc}));}
 function renderPresets(){
+  const n=$('presetNote');
+  if(n) n.innerHTML = PERSIST
+    ? '预设已保存在这个浏览器里，关掉页面也不会丢。换设备或换浏览器时用「导出」搬。'
+    : '当前环境禁用了浏览器存储（Claude artifact 里就是这样），预设只在本次有效 —— 用「导出」把 JSON 存进 txt。';
   if(!S.presets.length){$('presetList').textContent='还没有预设。';return;}
   $('presetList').innerHTML=S.presets.map((p,i)=>{
     const label=(p.runs||[]).map(r=>r.t).join('') || '(空)';
@@ -1059,16 +1080,17 @@ function renderPresets(){
     [2,3,4].forEach(k=>$('mode'+k).classList.toggle('on',k===S.nStops));
     setEnc(S.enc||'hex3'); renderRuns(); renderStops(); render();});
   $('presetList').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
-    S.presets.splice(+b.dataset.del,1);renderPresets();});
+    S.presets.splice(+b.dataset.del,1);savePresets();renderPresets();});
 }
-$('bSave').onclick=()=>{S.presets.push(snap());renderPresets();toast('已存为预设');};
+$('bSave').onclick=()=>{S.presets.push(snap());savePresets();renderPresets();
+  toast(PERSIST?'已存为预设（已落盘）':'已存为预设（本次有效，记得导出）');};
 $('bExport').onclick=()=>{const b=$('ioBox');b.style.display='';b.value=JSON.stringify(S.presets);
   copy(b.value,'JSON 已复制 — 存进 txt 文件');};
 $('bImport').onclick=()=>{const b=$('ioBox');
   if(b.style.display==='none'||!b.value.trim()){b.style.display='';b.value='';b.focus();
     toast('把 JSON 贴进下面再点一次');return;}
   try{const a=JSON.parse(b.value);
-    if(Array.isArray(a)){S.presets=a;renderPresets();toast('导入 '+a.length+' 条');}}
+    if(Array.isArray(a)){S.presets=a;savePresets();renderPresets();toast('导入 '+a.length+' 条');}}
   catch(e){toast('JSON 格式不对');}};
 
 /* &k 混淆：MC 里是不断跳字的，预览也跳 */
@@ -1634,8 +1656,9 @@ window.addEventListener('paste',e=>{
 });
 
 auditStyles();
+loadPresets(); savePresets();   // savePresets 顺带探测存储可用性
 setMode2('C');
-renderRuns(); renderStops(); renderSyms(); render();
+renderRuns(); renderStops(); renderSyms(); render(); renderPresets();
 </script>
 </body>
 </html>
