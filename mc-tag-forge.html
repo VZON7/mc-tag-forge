@@ -539,7 +539,7 @@ const S={
   wrap:0, nStops:2, cuts:[], cap:50, pk:0,
   stops:['#f37c52','#8860c6','#5555ff','#2f5b8b'],
   enc:'hex3', pixel:false, lore:true, presets:[], cat:'括号',
-  shotText:'', shotStyle:null, shotFit:0, shotPk:0,
+  shotText:'', shotStyle:null, shotFit:0, shotPk:0, shotCustom:null,
   shotFmt:{l:0,o:0,n:0,m:0,k:0}, shotEdit:null, shotCrop:null,
 };
 
@@ -1346,7 +1346,7 @@ function fitStops(cols,n){
   if(best) best.match = Math.max(0, 100 - best.err/255*100);
   return best;
 }
-let SHOT=null, ZOOM=2;
+let SHOT=null, ZOOM=2, EYEDROP=false;
 function reExtract(){
   if(!SHOT||!SHOT.img) return;
   S.shotEdit=null; S.shotPk=0;           // 换了取色区域，之前的手编代码/手调色标不再对应
@@ -1392,17 +1392,61 @@ function mapShotCuts(cuts, map, n, gN){
                        : Math.round(t*n);
   }).filter((v,i,a)=>v>=1 && v<=n-1 && (i===0||v>a[i-1]));
 }
+/* ═══ 我的配色：跟自动拟合完全分开的一份可编辑状态 ═══
+   自动拟合（2/3/4 色三行）现在是纯只读参考，永远不会被手改。
+   要微调就先「套用」到这里，改的是这份独立拷贝，原始拟合结果不会丢。
+   形状故意跟创作模式的 S.stops/S.nStops/S.cuts 一致（4 格数组 + STOPIDX 取子集），
+   这样取色器、断点滑块能整套复用创作模式那边已经验证过的逻辑。 */
+function seedCustomFrom(n, fit){
+  const stops = n===2 ? [fit.stops[0], fit.stops[0], fit.stops[1], fit.stops[1]]
+              : n===3 ? [fit.stops[0], fit.stops[1], fit.stops[1], fit.stops[2]]
+                      : fit.stops.slice();
+  // 断点从「色阶下标」一次性换算成「打字文本的字符下标」，换算之后就一直留在字符空间里，
+  // 断点滑块直接拖字符位置，不用每次都再绕回色阶空间。
+  const chars=[...apply(S.shotStyle==null?null:STYLES[S.shotStyle], S.shotText)];
+  const map=[]; chars.forEach((c,i)=>{ if(c.trim()) map.push(i); });
+  const cuts=mapShotCuts(fit.cuts, map, chars.length, (SHOT&&SHOT.glyphs.length)||1);
+  S.shotCustom={nStops:n, stops, cuts};
+}
+function activeCustomStops(){
+  const cc=S.shotCustom; if(!cc) return [];
+  const n=cc.nStops;
+  if(n===2) return [cc.stops[0],cc.stops[3]];
+  if(n===3) return [cc.stops[0],cc.stops[1],cc.stops[3]];
+  return [cc.stops[0],cc.stops[1],cc.stops[2],cc.stops[3]];
+}
+/* 跟创作模式的 bounds() 是同一套逻辑：断点不合法（文字变短/变长了）就按比例重新均分。 */
+function customBounds(total){
+  const cc=S.shotCustom; if(!cc) return [0,total];
+  const need=cc.nStops-2;
+  let c=(cc.cuts||[]).slice(0,need).map(v=>Math.round(v));
+  const ok = c.length===need && c.every((v,i)=>v>=1 && v<=total-1 && (i===0||v>c[i-1]));
+  if(!ok) c=Array.from({length:need},(_,i)=>Math.max(1,Math.round(total*(i+1)/(need+1))));
+  cc.cuts=c;
+  return [0,...c,total];
+}
+/* 统一解出"当前实际要用的颜色来源"——自动拟合（2/3/4，只读）或我的配色（可编辑）。
+   两边的 cuts 单位不一样：自动拟合是色阶下标，我的配色是字符下标，靠 glyphSpace 区分。 */
+function shotActive(){
+  if(S.shotFit==='custom'){
+    const cc=S.shotCustom; if(!cc) return null;
+    return {stops:activeCustomStops(), cuts:cc.cuts, n:cc.nStops, match:null, glyphSpace:false};
+  }
+  const o=SHOT&&SHOT.fits&&(SHOT.fits.find(x=>x.n===S.shotFit)||SHOT.fits[0]);
+  if(!o) return null;
+  return {stops:o.fit.stops, cuts:o.fit.cuts, n:o.n, match:o.fit.match, glyphSpace:true};
+}
 function shotCode(){
-  if(!SHOT||!SHOT.fits) return '';
-  const o=SHOT.fits.find(x=>x.n===S.shotFit)||SHOT.fits[0];
-  if(!o) return '';
-  const f=o.fit;
+  const act=shotActive(); if(!act) return '';
   const chars=[...apply(S.shotStyle==null?null:STYLES[S.shotStyle], S.shotText)];
   const n=chars.length;
   if(!n) return '';
-  const map=[]; chars.forEach((c,i)=>{ if(c.trim()) map.push(i); });
-  const cuts=mapShotCuts(f.cuts, map, n, SHOT.glyphs.length);
-  const bnd=[0,...cuts,n], st=f.stops;
+  let cuts;
+  if(act.glyphSpace){
+    const map=[]; chars.forEach((c,i)=>{ if(c.trim()) map.push(i); });
+    cuts=mapShotCuts(act.cuts, map, n, SHOT.glyphs.length);
+  } else cuts=customBounds(n).slice(1,-1);
+  const bnd=[0,...cuts,n], st=act.stops;
   let out='', pend=null;
   for(let s=0;s<bnd.length-1 && s<st.length-1;s++){
     const a=bnd[s], z=bnd[s+1];
@@ -1458,15 +1502,15 @@ function parseCode(code){
 
 /* 逆推侧的逐字色：和 shotCode 用同一套断点换算，保证预览和代码一致 */
 function shotCells(){
-  if(!SHOT||!SHOT.fits) return [];
-  const o=SHOT.fits.find(x=>x.n===S.shotFit)||SHOT.fits[0];
-  if(!o) return [];
-  const f=o.fit;
+  const act=shotActive(); if(!act) return [];
   const chars=[...apply(S.shotStyle==null?null:STYLES[S.shotStyle], S.shotText)];
   const n=chars.length; if(!n) return [];
-  const map=[]; chars.forEach((c,i)=>{ if(c.trim()) map.push(i); });
-  const cuts=mapShotCuts(f.cuts, map, n, SHOT.glyphs.length);
-  const bnd=[0,...cuts,n], st=f.stops.map(effective), cols=[];
+  let cuts;
+  if(act.glyphSpace){
+    const map=[]; chars.forEach((c,i)=>{ if(c.trim()) map.push(i); });
+    cuts=mapShotCuts(act.cuts, map, n, SHOT.glyphs.length);
+  } else cuts=customBounds(n).slice(1,-1);
+  const bnd=[0,...cuts,n], st=act.stops.map(effective), cols=[];
   for(let s=0;s<bnd.length-1 && s<st.length-1;s++)
     cols.push(...rampN(bnd[s+1]-bnd[s], st[s], st[s+1]));
   return chars.map((c,i)=>({ch:c, col:cols[i]||st[st.length-1]}));
@@ -1513,12 +1557,8 @@ function renderShotCode(){
   renderRepro();
 }
 
-/* 手动调色：自动拟合会把定色字符（比如爱心）也当成普通色阶去拟合，容易带偏起点/终点。
-   拟合结果的 stops 数组本来就是所有下游（shotCode/shotCells/shotApply）读的唯一来源，
-   直接原地改这个数组，不用另开一套状态、也不用另外接线。 */
-function shotFitObj(){
-  return (SHOT && SHOT.fits) ? (SHOT.fits.find(o=>o.n===S.shotFit)||SHOT.fits[0]) : null;
-}
+/* 自动拟合（2/3/4 色）纯只读参考，永远不手改。要微调先「套用微调」到"我的配色"，
+   改的是 S.shotCustom 那份独立拷贝，原始拟合结果不会丢，两边随时能对比。 */
 function fitRowHTML(n, fit, bestN){
   return `<div class="fitrow" data-row="${n}">
     <b style="min-width:34px">${n} 色</b>
@@ -1527,44 +1567,67 @@ function fitRowHTML(n, fit, bestN){
     <span style="font-family:ui-monospace,Consolas,monospace;font-size:11px">
       ${fit.stops.map(s2=>s2.slice(1).toUpperCase()).join(' → ')}</span>
     <b style="color:${fit.match>=97?'#4fae6b':fit.match>=90?'var(--mc-gold)':'var(--mc-red)'}">
-      ${fit.match.toFixed(1)}%</b>${fit.edited?'<span class="badge b-cost">已手调</span>':''}
+      ${fit.match.toFixed(1)}%</b>
     <button data-pick="${n}">选这个</button>
+    <button class="mini" data-seed="${n}" title="拿这个当起点，改成我自己的配色">套用微调</button>
+  </div>`;
+}
+function customRowHTML(){
+  const cc=S.shotCustom;
+  if(!cc) return `<div class="fitrow" data-row="custom">
+    <b style="min-width:60px">我的配色</b>
+    <span style="color:var(--ink-faint);font-size:12px">还没有——点上面某一行的「套用微调」开始</span>
+  </div>`;
+  const st=activeCustomStops();
+  return `<div class="fitrow" data-row="custom">
+    <b style="min-width:60px">我的配色</b>
+    <span class="bar">${st.map(s2=>`<div style="background:${s2}"></div>`).join('')}</span>
+    <span style="font-family:ui-monospace,Consolas,monospace;font-size:11px">
+      ${st.map(s2=>s2.slice(1).toUpperCase()).join(' → ')}</span>
+    <button data-pick="custom">选这个</button>
   </div>`;
 }
 function renderFitsList(){
   if(!SHOT||!SHOT.fits||!$('fitsList')) return;
   const top=Math.max(...SHOT.fits.map(o=>o.fit.match));
   const bestN=(SHOT.fits.find(o=>o.fit.match>=top-3)||SHOT.fits[0]).n;
-  $('fitsList').innerHTML=SHOT.fits.map(({n,fit})=>fitRowHTML(n,fit,bestN)).join('');
+  $('fitsList').innerHTML=SHOT.fits.map(({n,fit})=>fitRowHTML(n,fit,bestN)).join('')+customRowHTML();
   bindFitPicks();
 }
 function bindFitPicks(){
   if(!$('shotOut')) return;
   const markPick=()=>$('shotOut').querySelectorAll('[data-row]').forEach(el=>{
-    const on=+el.dataset.row===S.shotFit;
+    const rv=el.dataset.row, on = rv==='custom' ? S.shotFit==='custom' : +rv===S.shotFit;
     el.classList.toggle('sel',on);
     const b=el.querySelector('[data-pick]');
     if(b){ b.textContent=on?'✓ 已选':'选这个'; b.classList.toggle('on',on); }
   });
   $('shotOut').querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{
-    S.shotFit=+b.dataset.pick; S.shotPk=0; markPick(); renderShotEditor(); renderShotCode();});
+    const v=b.dataset.pick; S.shotFit = v==='custom' ? 'custom' : +v;
+    S.shotPk=0; markPick(); renderShotEditor(); renderCustomCuts(); renderShotCode();});
+  $('shotOut').querySelectorAll('[data-seed]').forEach(b=>b.onclick=()=>{
+    const n=+b.dataset.seed, fo=SHOT.fits.find(o=>o.n===n); if(!fo) return;
+    seedCustomFrom(n, fo.fit); S.shotFit='custom'; S.shotPk=0;
+    renderFitsList(); renderShotEditor(); renderCustomCuts(); renderShotCode();
+    toast(`已套用 ${n} 色作为起点，可以开始微调`);
+  });
   markPick();
 }
 function renderShotEditor(){
-  const fo=shotFitObj(); if(!fo||!$('shotChips')) return;
-  const stops=fo.fit.stops, labels=STOPLABEL[stops.length]||stops.map((_,i)=>String(i+1));
-  if(S.shotPk>=stops.length) S.shotPk=0;
-  $('shotChips').innerHTML=stops.map((hex,i)=>
-    `<button class="chip${S.shotPk===i?' active':''}" data-spk="${i}">
-       <i style="background:${effective(hex)}"></i>${labels[i]}</button>`).join('');
+  const cc=S.shotCustom; if(!cc||!$('shotChips')) return;
+  const idxs=STOPIDX[cc.nStops], labels=STOPLABEL[cc.nStops];
+  if(!idxs.includes(S.shotPk)) S.shotPk=idxs[0];
+  [2,3,4].forEach(k=>{ const b=$('scMode'+k); if(b) b.classList.toggle('on',cc.nStops===k); });
+  $('shotChips').innerHTML=idxs.map((si,i)=>
+    `<button class="chip${S.shotPk===si?' active':''}" data-spk="${si}">
+       <i style="background:${effective(cc.stops[si])}"></i>${labels[i]}</button>`).join('');
   $('shotChips').querySelectorAll('[data-spk]').forEach(b=>b.onclick=()=>{
     S.shotPk=+b.dataset.spk; renderShotEditor();});
-  if($('shotEditLabel')) $('shotEditLabel').textContent=S.shotFit+' 色';
   syncShotPicker();
 }
 function syncShotPicker(){
-  const fo=shotFitObj(); if(!fo||!$('svShot')) return;
-  const hex=fo.fit.stops[S.shotPk], hsv=hex2hsv(hex);
+  const cc=S.shotCustom; if(!cc||!$('svShot')) return;
+  const hex=cc.stops[S.shotPk], hsv=hex2hsv(hex);
   $('svShot').style.background=
     `linear-gradient(to top, #000, rgba(0,0,0,0)), `+
     `linear-gradient(to right, #fff, ${hsv2hex({h:hsv.h,s:1,v:1})})`;
@@ -1578,12 +1641,38 @@ function syncShotPicker(){
     ? `实际 <span style="color:${eff}">${eff.toUpperCase()}</span>（无损）`
     : `实际 <span style="color:${eff}">${eff.toUpperCase()}</span>`;
   $('shotChips').querySelectorAll('[data-spk]').forEach(b=>{
-    b.querySelector('i').style.background=effective(fo.fit.stops[+b.dataset.spk]);});
+    b.querySelector('i').style.background=effective(cc.stops[+b.dataset.spk]);});
 }
 function setShotStop(hex){
-  const fo=shotFitObj(); if(!fo) return;
-  fo.fit.stops[S.shotPk]=hex; fo.fit.edited=true;
+  if(!S.shotCustom) return;
+  S.shotCustom.stops[S.shotPk]=hex;
+  S.shotFit='custom';   // 编辑即切到"我的配色"，立刻能看到效果
   syncShotPicker(); renderFitsList(); renderShotCode();
+}
+function setCustomN(n){
+  if(!S.shotCustom) return;
+  S.shotCustom.nStops=n; S.shotCustom.cuts=[];
+  S.shotFit='custom'; S.shotPk=0;
+  renderShotEditor(); renderCustomCuts(); renderFitsList(); renderShotCode();
+}
+/* 断点滑块——跟创作模式的 renderCuts() 是同一套写法，只是操作 S.shotCustom.cuts
+   而不是 S.cuts，「总字符数」用的是逆推这边手打的文字长度。 */
+function renderCustomCuts(){
+  const cc=S.shotCustom, box=$('customCutWrap'); if(!box) return;
+  const chars=[...apply(S.shotStyle==null?null:STYLES[S.shotStyle], S.shotText)];
+  const total=chars.length, need=cc?cc.nStops-2:0;
+  box.style.display=(cc&&need&&total)?'':'none';
+  if(!cc||!need||!total) return;
+  const b=customBounds(total);
+  box.innerHTML=cc.cuts.map((c,i)=>
+    `<label class="f">断点 ${i+1}（第 <b>${c}</b> 个字符之后）</label>
+     <input type="range" data-ccut="${i}" min="1" max="${Math.max(1,total-1)}" value="${c}" style="width:100%">`).join('');
+  box.querySelectorAll('[data-ccut]').forEach(el=>el.oninput=()=>{
+    const i=+el.dataset.ccut; cc.cuts[i]=+el.value;
+    for(let j=i+1;j<cc.cuts.length;j++) cc.cuts[j]=Math.max(cc.cuts[j],cc.cuts[i]+1);
+    for(let j=i-1;j>=0;j--)            cc.cuts[j]=Math.min(cc.cuts[j],cc.cuts[i]-1);
+    S.shotFit='custom'; renderCustomCuts(); renderShotCode();
+  });
 }
 
 function renderShot(res, img){
@@ -1608,28 +1697,39 @@ function renderShot(res, img){
       <button id="z1">1×</button><button id="z2">2×</button><button id="z4">4×</button>
       <span>${res.w}×${res.hh}px</span>
       <span class="grow" style="flex:1"></span>
+      <button id="eyedrop">取色笔</button>
       <button id="reshot">换一张</button>
     </div>
     <div class="srcwrap"><canvas id="srcCanvas"></canvas>
       <div class="selrect" id="selRect"></div>
       <div class="swstrip" id="swStrip"></div></div>
+    <div class="zoombar" id="eyedropBar" style="display:none;margin-top:4px">
+      <span>取色笔开着——把鼠标移到图上看颜色，点一下会写进「我的配色」当前选中的色标</span>
+      <span class="chip" id="eyedropReadout" style="cursor:default"><i style="background:#888"></i>—</span>
+    </div>
     <div class="zoombar" style="margin-top:4px">
       <span><b>在图上拖一个框</b>选出要取色的那一行</span>
       <button id="selAll">用整张图</button>
       <span id="selInfo"></span>
     </div>
     <div class="note">整张 tooltip 截图里名字、附魔、lore 全是文字，自动分行在有 GUI 背景时不可靠 —— 框选最准。
-      色带是识别出的每个色阶，按列位置对齐在图下面，可以逐个核对有没有错切。</div>
+      色带是识别出的每个色阶，按列位置对齐在图下面，可以逐个核对有没有错切。
+      拿不准这张图适不适合自动拟合的话，用上面的「取色笔」直接点图取真实颜色，不用等它拟合。</div>
     <div class="note" style="margin-top:10px">
       缩放倍率 <b>${scale}×</b>
       ｜ 背景 <span style="color:${bg}">${bg.toUpperCase()}</span>
       ｜ 取到 <b>${glyphs.length}</b> 个色阶${
         res.dropped||res.trimmed?`（剔除 ${res.dropped} 阴影${res.trimmed?` + ${res.trimmed} 端点杂色`:''}）`:''}
     </div>
-    <div style="margin-top:8px" id="fitsList">${fits.map(({n,fit})=>fitRowHTML(n,fit,bestN)).join('')}</div>
+    <div style="margin-top:8px" id="fitsList"></div>
     <div class="panel" style="margin-top:12px;background:var(--void)">
-      <label class="f">手动调色 —— 当前选中的 <b id="shotEditLabel">${S.shotFit} 色</b>，点色块选中再拖动或输入十六进制微调
-        <span style="color:var(--ink-faint)">（定色符号比如爱心会把自动拟合带偏，这里手动改回真实颜色）</span></label>
+      <label class="f">我的配色 —— 在上面某一行点「套用微调」拿它当起点，或直接在这里改
+        <span style="color:var(--ink-faint)">（定色符号比如爱心会把自动拟合带偏，这里改成真实颜色，不会动上面几行的原始结果）</span></label>
+      <div class="row" style="margin:2px 0 10px">
+        <button class="mini" id="scMode2">2 色</button>
+        <button class="mini" id="scMode3">3 色</button>
+        <button class="mini" id="scMode4">4 色</button>
+      </div>
       <div class="chips" id="shotChips"></div>
       <div class="picker">
         <div class="sv" id="svShot"><div class="knob" id="svKnobShot"></div></div>
@@ -1639,7 +1739,7 @@ function renderShot(res, img){
           <span class="eff" id="pkEffShot"></span>
         </div>
       </div>
-      <button class="mini" id="shotStopReset" style="margin-top:9px">还原这个色标数的自动拟合</button>
+      <div id="customCutWrap" style="display:none;margin-top:12px"></div>
     </div>
     <div class="zoombar" style="margin-bottom:2px;margin-top:12px"><span>复刻效果（下面填了文字才有）</span></div>
     <div class="repro" id="repro"></div>
@@ -1671,13 +1771,43 @@ function renderShot(res, img){
     <div class="note">还没做：识别文字内容、花体种类、emoji —— 那需要服务器资源包的字体图集。</div>`;
   [1,2,4].forEach(z=>$('z'+z).onclick=()=>{ZOOM=z;drawSource();});
   $('selAll').onclick=()=>{S.shotCrop=null; reExtract();};
+  const syncEyedropUI=()=>{
+    $('eyedrop').classList.toggle('on',EYEDROP);
+    $('eyedropBar').style.display=EYEDROP?'':'none';
+    if($('srcCanvas')) $('srcCanvas').style.cursor=EYEDROP?'copy':'crosshair';
+  };
+  $('eyedrop').onclick=()=>{
+    EYEDROP=!EYEDROP; syncEyedropUI(); $('selRect').style.display='none';
+  };
   const cv=$('srcCanvas');
   if(cv){
     let a=null;
     const pt=e=>{const r=cv.getBoundingClientRect();
       return {x:Math.round((e.clientX-r.left)/ZOOM), y:Math.round((e.clientY-r.top)/ZOOM)};};
-    cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);a=pt(e);e.preventDefault();});
+    /* 取色笔直接读画布像素——这张画布是整数倍近邻缩放画出来的（imageSmoothingEnabled=false），
+       所以每个显示像素对应原图一个像素，颜色是准的，不用另外换算回原图坐标。 */
+    const pixelHexAt=e=>{
+      const r=cv.getBoundingClientRect();
+      const px=Math.floor(e.clientX-r.left), py=Math.floor(e.clientY-r.top);
+      if(px<0||py<0||px>=cv.width||py>=cv.height) return null;
+      const d=cv.getContext('2d').getImageData(px,py,1,1).data;
+      return rgb2hex([d[0],d[1],d[2]]);
+    };
+    cv.addEventListener('pointerdown',e=>{
+      if(EYEDROP){
+        const hex=pixelHexAt(e); e.preventDefault();
+        if(!hex) return;
+        if(S.shotCustom){ setShotStop(hex); toast(`已取色 ${hex.toUpperCase()} → 写入「我的配色」`); }
+        else toast(`取到 ${hex.toUpperCase()}，但还没有「我的配色」——先点某一行的「套用微调」`);
+        return;
+      }
+      cv.setPointerCapture(e.pointerId);a=pt(e);e.preventDefault();});
     cv.addEventListener('pointermove',e=>{
+      if(EYEDROP){
+        const hex=pixelHexAt(e), box=$('eyedropReadout');
+        if(hex&&box) box.innerHTML=`<i style="background:${hex}"></i>${hex.toUpperCase()}`;
+        return;
+      }
       if(!a) return;
       const b=pt(e), R=$('selRect');
       R.style.display='block';
@@ -1685,6 +1815,7 @@ function renderShot(res, img){
       R.style.width=(Math.abs(b.x-a.x)*ZOOM)+'px'; R.style.height=(Math.abs(b.y-a.y)*ZOOM)+'px';
     });
     cv.addEventListener('pointerup',e=>{
+      if(EYEDROP) return;
       if(!a) return;
       const b=pt(e);
       const cr={x:Math.min(a.x,b.x), y:Math.min(a.y,b.y),
@@ -1694,19 +1825,22 @@ function renderShot(res, img){
     });
   }
   $('reshot').onclick=()=>$('file').click();
-  if(!S.shotFit || !fits.some(o=>o.n===S.shotFit)) S.shotFit=bestN;
+  if(!S.shotFit || !(S.shotFit==='custom'||fits.some(o=>o.n===S.shotFit))) S.shotFit=bestN;
   S.shotPk=0;
+  // 每次新图/新框选都从"推荐"那个自动结果重新起个"我的配色"草稿——旧的手调反正对不上新图了
+  seedCustomFrom(bestN, fits.find(o=>o.n===bestN).fit);
   /* 「推荐」和「已选」是两件事 —— 之前共用一个 class，选了别的之后旧的橙边不消失。 */
   bindFitPicks();
   renderShotEditor();
+  renderCustomCuts();
   drag($('svShot'), (x,y)=>{
-    const fo=shotFitObj(); if(!fo) return;
-    const hsv=hex2hsv(fo.fit.stops[S.shotPk]);
+    if(!S.shotCustom) return;
+    const hsv=hex2hsv(S.shotCustom.stops[S.shotPk]);
     setShotStop(hsv2hex({h:hsv.h,s:x,v:1-y}));
   });
   drag($('hueShot'), (x,y)=>{
-    const fo=shotFitObj(); if(!fo) return;
-    const hsv=hex2hsv(fo.fit.stops[S.shotPk]);
+    if(!S.shotCustom) return;
+    const hsv=hex2hsv(S.shotCustom.stops[S.shotPk]);
     setShotStop(hsv2hex({h:y*360,s:hsv.s||1,v:hsv.v||1}));
   });
   $('pkHexShot').onchange=()=>{
@@ -1714,16 +1848,11 @@ function renderShot(res, img){
     if(/^#[0-9a-f]{3}$/i.test(v)) v=exp3(v.slice(1));
     if(/^#[0-9a-f]{6}$/i.test(v)) setShotStop(v.toLowerCase()); else syncShotPicker();
   };
-  $('shotStopReset').onclick=()=>{
-    const fresh=fitStops(SHOT.glyphs, S.shotFit);
-    if(fresh){ const idx=SHOT.fits.findIndex(o=>o.n===S.shotFit); SHOT.fits[idx]={n:S.shotFit,fit:fresh}; }
-    renderFitsList(); renderShotEditor(); renderShotCode();
-    toast('已还原自动拟合');
-  };
+  [2,3,4].forEach(k=>$('scMode'+k).onclick=()=>setCustomN(k));
 
   renderShotStyles();
   $('shotTxt').oninput=()=>{S.shotText=$('shotTxt').value;
-    renderShotStyles(); renderShotCode();};
+    renderShotStyles(); renderCustomCuts(); renderShotCode();};
   $('shotOut').querySelectorAll('[data-sf]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.sf; S.shotFmt[k]=S.shotFmt[k]?0:1;
     b.classList.toggle('on',!!S.shotFmt[k]);
@@ -1735,19 +1864,21 @@ function renderShot(res, img){
   $('shotCopy').onclick=()=>{const c=liveCode();
     if(c) copy(c, `已复制（${c.length} 格）`); else toast('先填文字内容');};
   $('shotApply').onclick=()=>{
-    const f=(SHOT.fits.find(o=>o.n===S.shotFit)||SHOT.fits[0]).fit, n=S.shotFit;
+    const act=shotActive(); if(!act) return;
+    const n=act.n;
     S.nStops=n;
-    S.stops = n===2 ? [f.stops[0], f.stops[0], f.stops[1], f.stops[1]]
-            : n===3 ? [f.stops[0], f.stops[1], f.stops[1], f.stops[2]]
-                    : f.stops.slice();
-    S.cuts=f.cuts.slice();
+    S.stops = n===2 ? [act.stops[0], act.stops[0], act.stops[1], act.stops[1]]
+            : n===3 ? [act.stops[0], act.stops[1], act.stops[1], act.stops[2]]
+                    : act.stops.slice();
+    S.cuts=act.cuts.slice();
     if(S.shotText){ S.runs=[newRun(S.shotText)]; S.runs[0].st=S.shotStyle;
       S.runs[0].f={...S.shotFmt}; S.active=0; }
     [2,3,4].forEach(k=>$('mode'+k).classList.toggle('on',k===n));
     renderRuns(); renderStops(); render(); setMode2('C');
-    toast(`已套用 ${n} 色渐变（吻合 ${f.match.toFixed(1)}%）`);
+    toast(`已套用 ${n} 色渐变${act.match!=null?`（吻合 ${act.match.toFixed(1)}%）`:''}`);
   };
   renderShotCode();
+  syncEyedropUI();
   drawSource();
 }
 function loadShot(file){

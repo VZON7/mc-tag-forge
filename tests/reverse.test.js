@@ -11,8 +11,10 @@ const { install, loadTool } = require('./lib/dom');
 const { loadImage } = require('./lib/png');
 const t = require('./lib/t');
 install();
-const M = loadTool(['extractGlyphs', 'fitStops', 'detectScale', 'mapShotCuts']);
-const { extractGlyphs, fitStops, mapShotCuts } = M;
+const M = loadTool(['extractGlyphs', 'fitStops', 'detectScale', 'mapShotCuts',
+                    'S', 'shotCode', 'shotCells', 'customBounds', 'activeCustomStops']);
+const { extractGlyphs, fitStops, mapShotCuts, S, shotCode, shotCells,
+        customBounds, activeCustomStops } = M;
 
 const fix = (n) => loadImage(path.join(__dirname, 'fixtures', n));
 
@@ -76,6 +78,36 @@ t.section('逆推色标下标换算：色阶数刚好等于手打字数时行为
 const map17 = Array.from({ length: 17 }, (_, i) => i);
 t.eq('1:1 时直接对应原下标（跟改之前一致）',
   mapShotCuts([5, 9], map17, 17, 17).join(','), '5,9');
+
+t.section('我的配色：4 格数组按 nStops 收缩成实际用到的色标（跟创作模式 activeStops 同一套规则）');
+S.shotCustom = { nStops: 2, stops: ['#111111', 'x', 'x', '#eeeeee'], cuts: [] };
+t.eq('2 色只取首尾', activeCustomStops().join(','), '#111111,#eeeeee');
+S.shotCustom = { nStops: 3, stops: ['#111111', '#222222', 'x', '#eeeeee'], cuts: [] };
+t.eq('3 色取起/中/尾', activeCustomStops().join(','), '#111111,#222222,#eeeeee');
+S.shotCustom = { nStops: 4, stops: ['#111111', '#222222', '#333333', '#eeeeee'], cuts: [] };
+t.eq('4 色四格全取', activeCustomStops().join(','), '#111111,#222222,#333333,#eeeeee');
+
+t.section('我的配色：断点越界（比如文字变短了）时按比例重新均分，不会指向不存在的字符');
+S.shotCustom = { nStops: 3, stops: ['#ff0000', '#00ff00', 'x', '#0000ff'], cuts: [20] };
+const bnd = customBounds(3);
+t.eq('断点数组形状不变', bnd.length, 3);
+t.ok('重新均分后落在合法范围内', bnd[1] >= 1 && bnd[1] <= 2, bnd.join(','));
+
+t.section('我的配色：非破坏性编辑——断点直接是字符下标，不用再绕回色阶空间');
+S.shotText = 'shiranui flare'; S.shotStyle = null; S.shotFmt = { l: 0, o: 0, n: 0, m: 0, k: 0 };
+S.shotEdit = null; S.enc = 'hex6'; S.shotFit = 'custom';
+S.shotCustom = { nStops: 4, stops: ['#ff00ff', '#00ff00', '#5500cc', '#ffffff'], cuts: [3, 9] };
+const cs = shotCells();
+t.eq('逐字色数量等于打字长度', cs.length, [...S.shotText].length);
+t.eq('开头是起始色', cs[0].col, '#ff00ff');
+t.eq('第一个断点处正好过渡到色标 2', cs[2].col, '#00ff00');
+t.eq('第二个断点处正好过渡到色标 3', cs[9].col, '#5500cc');
+t.eq('结尾是终止色', cs[cs.length - 1].col, '#ffffff');
+const customCode = shotCode();
+t.info('我的配色代码 ' + customCode);
+t.ok('代码以起始色开标签', customCode.startsWith('{#ff00ff>}'), customCode);
+t.ok('代码含中间色标', customCode.includes('00ff00') && customCode.includes('5500cc'), customCode);
+t.ok('代码以终止色收尾', customCode.endsWith('{#ffffff<}'), customCode);
 
 t.section('不框选整张 tooltip 会取到全部文字行 —— 这就是框选存在的理由');
 const whole = extractGlyphs(fix('takodachi-2color.png'));
