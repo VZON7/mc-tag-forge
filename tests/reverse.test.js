@@ -11,8 +11,8 @@ const { install, loadTool } = require('./lib/dom');
 const { loadImage } = require('./lib/png');
 const t = require('./lib/t');
 install();
-const M = loadTool(['extractGlyphs', 'fitStops', 'detectScale']);
-const { extractGlyphs, fitStops } = M;
+const M = loadTool(['extractGlyphs', 'fitStops', 'detectScale', 'mapShotCuts']);
+const { extractGlyphs, fitStops, mapShotCuts } = M;
 
 const fix = (n) => loadImage(path.join(__dirname, 'fixtures', n));
 
@@ -57,6 +57,25 @@ t.eq('逐字色', tk.glyphs.join(' ').toUpperCase(),
 t.section('取色与缩放无关（降采样不是前置条件）');
 t.info('takodachi 那张是 GUI Scale 2，探测到 ' + tk.scale + '×，但逐字色仍然精确');
 t.ok('端点未被 tooltip 紫边污染', tk.glyphs[0] !== '#24015c' && tk.glyphs[0] !== '#100110');
+
+t.section('逆推色标下标换算：框选带上装饰符号导致色阶数远多于手打字数时不能塌缩');
+/* 实测过的事故：框选连爱心、符号一起框进去，取到 52 个色阶，
+ * 但「文字内容」框只手打了裸名字 13 个字符。旧公式拿色阶下标直接当字符下标用
+ * （只在两边数量不等时才退回按比例算，但这个退回分支几乎永远不会触发），
+ * 字数一少色阶下标全部被 clamp 到最后一个字符，两个断点叠在一起，
+ * 4 色里中间那一段直接消失、渐变从起点跳色跳到第三个色标。 */
+const map13 = Array.from({ length: 13 }, (_, i) => i);
+const collapsedBefore = mapShotCuts([13, 35], map13, 13, 52);
+t.eq('两个断点数量不变', collapsedBefore.length, 2);
+t.ok('按比例换算，不会塌缩成同一个字符下标',
+  collapsedBefore[1] > collapsedBefore[0], collapsedBefore.join(','));
+t.ok('都落在合法字符范围内',
+  collapsedBefore.every((v) => v >= 1 && v <= 12), collapsedBefore.join(','));
+
+t.section('逆推色标下标换算：色阶数刚好等于手打字数时行为不变（回归）');
+const map17 = Array.from({ length: 17 }, (_, i) => i);
+t.eq('1:1 时直接对应原下标（跟改之前一致）',
+  mapShotCuts([5, 9], map17, 17, 17).join(','), '5,9');
 
 t.section('不框选整张 tooltip 会取到全部文字行 —— 这就是框选存在的理由');
 const whole = extractGlyphs(fix('takodachi-2color.png'));

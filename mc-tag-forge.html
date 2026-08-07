@@ -539,7 +539,7 @@ const S={
   wrap:0, nStops:2, cuts:[], cap:50, pk:0,
   stops:['#f37c52','#8860c6','#5555ff','#2f5b8b'],
   enc:'hex3', pixel:false, lore:true, presets:[], cat:'括号',
-  shotText:'', shotStyle:null, shotFit:0,
+  shotText:'', shotStyle:null, shotFit:0, shotPk:0,
   shotFmt:{l:0,o:0,n:0,m:0,k:0}, shotEdit:null, shotCrop:null,
 };
 
@@ -1349,7 +1349,7 @@ function fitStops(cols,n){
 let SHOT=null, ZOOM=2;
 function reExtract(){
   if(!SHOT||!SHOT.img) return;
-  S.shotEdit=null;                       // 换了取色区域，之前的手编代码不再对应
+  S.shotEdit=null; S.shotPk=0;           // 换了取色区域，之前的手编代码/手调色标不再对应
   renderShot(extractGlyphs(SHOT.img, null, S.shotCrop), SHOT.img);
 }
 function drawSource(){
@@ -1379,7 +1379,19 @@ function drawSource(){
 }
 
 /* 逆推面板的代码生成：颜色来自拟合，文字和花体由用户填（工具认不出字符）。
-   fit.cuts 的单位是「有墨字符」下标（空格不产生色阶），所以要跳过空格换算。 */
+   fit.cuts 的单位是「有墨色阶」下标（0..glyphs.length-1，空格不产生色阶）。
+   不能假设色阶数跟手打的字数一样多——框选常常连装饰符号一起框进去，
+   色阶数会比手打的名字长很多，必须按比例换算，不能拿色阶下标直接当字符下标用
+   （直接用的话，字数一少色阶下标全部会被 clamp 到最后一个字符，后面的色标全部消失、
+   渐变直接跳到最后一段——这正是之前反馈里"该有 4 色结果预览只有 2 色"那个 bug）。 */
+function mapShotCuts(cuts, map, n, gN){
+  gN=gN||1;
+  return cuts.map(c=>{
+    const t=c/gN;
+    return map.length ? map[Math.min(map.length-1, Math.max(0,Math.round(t*map.length)))]
+                       : Math.round(t*n);
+  }).filter((v,i,a)=>v>=1 && v<=n-1 && (i===0||v>a[i-1]));
+}
 function shotCode(){
   if(!SHOT||!SHOT.fits) return '';
   const o=SHOT.fits.find(x=>x.n===S.shotFit)||SHOT.fits[0];
@@ -1388,10 +1400,8 @@ function shotCode(){
   const chars=[...apply(S.shotStyle==null?null:STYLES[S.shotStyle], S.shotText)];
   const n=chars.length;
   if(!n) return '';
-  // 有墨下标 → 字符下标
   const map=[]; chars.forEach((c,i)=>{ if(c.trim()) map.push(i); });
-  const cuts=f.cuts.map(c=>map[Math.min(map.length-1,c)]??Math.round(c*n/SHOT.glyphs.length))
-                   .filter(v=>v>=1&&v<=n-1);
+  const cuts=mapShotCuts(f.cuts, map, n, SHOT.glyphs.length);
   const bnd=[0,...cuts,n], st=f.stops;
   let out='', pend=null;
   for(let s=0;s<bnd.length-1 && s<st.length-1;s++){
@@ -1455,8 +1465,7 @@ function shotCells(){
   const chars=[...apply(S.shotStyle==null?null:STYLES[S.shotStyle], S.shotText)];
   const n=chars.length; if(!n) return [];
   const map=[]; chars.forEach((c,i)=>{ if(c.trim()) map.push(i); });
-  const cuts=f.cuts.map(c=>map[Math.min(map.length-1,c)]??Math.round(c*n/SHOT.glyphs.length))
-                   .filter(v=>v>=1&&v<=n-1);
+  const cuts=mapShotCuts(f.cuts, map, n, SHOT.glyphs.length);
   const bnd=[0,...cuts,n], st=f.stops.map(effective), cols=[];
   for(let s=0;s<bnd.length-1 && s<st.length-1;s++)
     cols.push(...rampN(bnd[s+1]-bnd[s], st[s], st[s+1]));
@@ -1504,6 +1513,79 @@ function renderShotCode(){
   renderRepro();
 }
 
+/* 手动调色：自动拟合会把定色字符（比如爱心）也当成普通色阶去拟合，容易带偏起点/终点。
+   拟合结果的 stops 数组本来就是所有下游（shotCode/shotCells/shotApply）读的唯一来源，
+   直接原地改这个数组，不用另开一套状态、也不用另外接线。 */
+function shotFitObj(){
+  return (SHOT && SHOT.fits) ? (SHOT.fits.find(o=>o.n===S.shotFit)||SHOT.fits[0]) : null;
+}
+function fitRowHTML(n, fit, bestN){
+  return `<div class="fitrow" data-row="${n}">
+    <b style="min-width:34px">${n} 色</b>
+    ${n===bestN?'<span class="rec">推荐</span>':''}
+    <span class="bar">${fit.stops.map(s2=>`<div style="background:${s2}"></div>`).join('')}</span>
+    <span style="font-family:ui-monospace,Consolas,monospace;font-size:11px">
+      ${fit.stops.map(s2=>s2.slice(1).toUpperCase()).join(' → ')}</span>
+    <b style="color:${fit.match>=97?'#4fae6b':fit.match>=90?'var(--mc-gold)':'var(--mc-red)'}">
+      ${fit.match.toFixed(1)}%</b>${fit.edited?'<span class="badge b-cost">已手调</span>':''}
+    <button data-pick="${n}">选这个</button>
+  </div>`;
+}
+function renderFitsList(){
+  if(!SHOT||!SHOT.fits||!$('fitsList')) return;
+  const top=Math.max(...SHOT.fits.map(o=>o.fit.match));
+  const bestN=(SHOT.fits.find(o=>o.fit.match>=top-3)||SHOT.fits[0]).n;
+  $('fitsList').innerHTML=SHOT.fits.map(({n,fit})=>fitRowHTML(n,fit,bestN)).join('');
+  bindFitPicks();
+}
+function bindFitPicks(){
+  if(!$('shotOut')) return;
+  const markPick=()=>$('shotOut').querySelectorAll('[data-row]').forEach(el=>{
+    const on=+el.dataset.row===S.shotFit;
+    el.classList.toggle('sel',on);
+    const b=el.querySelector('[data-pick]');
+    if(b){ b.textContent=on?'✓ 已选':'选这个'; b.classList.toggle('on',on); }
+  });
+  $('shotOut').querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{
+    S.shotFit=+b.dataset.pick; S.shotPk=0; markPick(); renderShotEditor(); renderShotCode();});
+  markPick();
+}
+function renderShotEditor(){
+  const fo=shotFitObj(); if(!fo||!$('shotChips')) return;
+  const stops=fo.fit.stops, labels=STOPLABEL[stops.length]||stops.map((_,i)=>String(i+1));
+  if(S.shotPk>=stops.length) S.shotPk=0;
+  $('shotChips').innerHTML=stops.map((hex,i)=>
+    `<button class="chip${S.shotPk===i?' active':''}" data-spk="${i}">
+       <i style="background:${effective(hex)}"></i>${labels[i]}</button>`).join('');
+  $('shotChips').querySelectorAll('[data-spk]').forEach(b=>b.onclick=()=>{
+    S.shotPk=+b.dataset.spk; renderShotEditor();});
+  if($('shotEditLabel')) $('shotEditLabel').textContent=S.shotFit+' 色';
+  syncShotPicker();
+}
+function syncShotPicker(){
+  const fo=shotFitObj(); if(!fo||!$('svShot')) return;
+  const hex=fo.fit.stops[S.shotPk], hsv=hex2hsv(hex);
+  $('svShot').style.background=
+    `linear-gradient(to top, #000, rgba(0,0,0,0)), `+
+    `linear-gradient(to right, #fff, ${hsv2hex({h:hsv.h,s:1,v:1})})`;
+  $('svKnobShot').style.left=(hsv.s*100)+'%';
+  $('svKnobShot').style.top=((1-hsv.v)*100)+'%';
+  $('svKnobShot').style.background=hex;
+  $('hueKnobShot').style.top=(hsv.h/360*100)+'%';
+  $('pkHexShot').value=hex;
+  const eff=effective(hex);
+  $('pkEffShot').innerHTML = eff.toLowerCase()===hex.toLowerCase()
+    ? `实际 <span style="color:${eff}">${eff.toUpperCase()}</span>（无损）`
+    : `实际 <span style="color:${eff}">${eff.toUpperCase()}</span>`;
+  $('shotChips').querySelectorAll('[data-spk]').forEach(b=>{
+    b.querySelector('i').style.background=effective(fo.fit.stops[+b.dataset.spk]);});
+}
+function setShotStop(hex){
+  const fo=shotFitObj(); if(!fo) return;
+  fo.fit.stops[S.shotPk]=hex; fo.fit.edited=true;
+  syncShotPicker(); renderFitsList(); renderShotCode();
+}
+
 function renderShot(res, img){
   const {glyphs,scale,bg}=res;
   SHOT={img: img||(SHOT&&SHOT.img), w:res.w, hh:res.hh,
@@ -1538,25 +1620,29 @@ function renderShot(res, img){
     </div>
     <div class="note">整张 tooltip 截图里名字、附魔、lore 全是文字，自动分行在有 GUI 背景时不可靠 —— 框选最准。
       色带是识别出的每个色阶，按列位置对齐在图下面，可以逐个核对有没有错切。</div>
-    <div class="zoombar" style="margin-bottom:2px"><span>复刻效果（下面填了文字才有）</span></div>
-    <div class="repro" id="repro"></div>
     <div class="note" style="margin-top:10px">
       缩放倍率 <b>${scale}×</b>
       ｜ 背景 <span style="color:${bg}">${bg.toUpperCase()}</span>
       ｜ 取到 <b>${glyphs.length}</b> 个色阶${
         res.dropped||res.trimmed?`（剔除 ${res.dropped} 阴影${res.trimmed?` + ${res.trimmed} 端点杂色`:''}）`:''}
     </div>
-    <div style="margin-top:8px">${fits.map(({n,fit})=>`
-      <div class="fitrow" data-row="${n}">
-        <b style="min-width:34px">${n} 色</b>
-        ${n===bestN?'<span class="rec">推荐</span>':''}
-        <span class="bar">${fit.stops.map(s2=>`<div style="background:${s2}"></div>`).join('')}</span>
-        <span style="font-family:ui-monospace,Consolas,monospace;font-size:11px">
-          ${fit.stops.map(s2=>s2.slice(1).toUpperCase()).join(' → ')}</span>
-        <b style="color:${fit.match>=97?'#4fae6b':fit.match>=90?'var(--mc-gold)':'var(--mc-red)'}">
-          ${fit.match.toFixed(1)}%</b>
-        <button data-pick="${n}">选这个</button>
-      </div>`).join('')}</div>
+    <div style="margin-top:8px" id="fitsList">${fits.map(({n,fit})=>fitRowHTML(n,fit,bestN)).join('')}</div>
+    <div class="panel" style="margin-top:12px;background:var(--void)">
+      <label class="f">手动调色 —— 当前选中的 <b id="shotEditLabel">${S.shotFit} 色</b>，点色块选中再拖动或输入十六进制微调
+        <span style="color:var(--ink-faint)">（定色符号比如爱心会把自动拟合带偏，这里手动改回真实颜色）</span></label>
+      <div class="chips" id="shotChips"></div>
+      <div class="picker">
+        <div class="sv" id="svShot"><div class="knob" id="svKnobShot"></div></div>
+        <div class="hue" id="hueShot"><div class="hueknob" id="hueKnobShot"></div></div>
+        <div class="pkinfo">
+          <input type="text" id="pkHexShot" spellcheck="false" style="font-family:inherit;font-size:12px">
+          <span class="eff" id="pkEffShot"></span>
+        </div>
+      </div>
+      <button class="mini" id="shotStopReset" style="margin-top:9px">还原这个色标数的自动拟合</button>
+    </div>
+    <div class="zoombar" style="margin-bottom:2px;margin-top:12px"><span>复刻效果（下面填了文字才有）</span></div>
+    <div class="repro" id="repro"></div>
     <div class="panel" style="margin-top:12px;background:var(--void)">
       <label class="f">文字内容 —— 逆推认不出字符，这里手填（我看截图告诉你，或你自己照着打）</label>
       <input type="text" id="shotTxt" spellcheck="false"
@@ -1609,16 +1695,31 @@ function renderShot(res, img){
   }
   $('reshot').onclick=()=>$('file').click();
   if(!S.shotFit || !fits.some(o=>o.n===S.shotFit)) S.shotFit=bestN;
+  S.shotPk=0;
   /* 「推荐」和「已选」是两件事 —— 之前共用一个 class，选了别的之后旧的橙边不消失。 */
-  const markPick=()=>$('shotOut').querySelectorAll('[data-row]').forEach(el=>{
-    const on = +el.dataset.row===S.shotFit;
-    el.classList.toggle('sel', on);
-    const b=el.querySelector('[data-pick]');
-    if(b){ b.textContent = on?'✓ 已选':'选这个'; b.classList.toggle('on',on); }
+  bindFitPicks();
+  renderShotEditor();
+  drag($('svShot'), (x,y)=>{
+    const fo=shotFitObj(); if(!fo) return;
+    const hsv=hex2hsv(fo.fit.stops[S.shotPk]);
+    setShotStop(hsv2hex({h:hsv.h,s:x,v:1-y}));
   });
-  $('shotOut').querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{
-    S.shotFit=+b.dataset.pick; markPick(); renderShotCode();});
-  markPick();
+  drag($('hueShot'), (x,y)=>{
+    const fo=shotFitObj(); if(!fo) return;
+    const hsv=hex2hsv(fo.fit.stops[S.shotPk]);
+    setShotStop(hsv2hex({h:y*360,s:hsv.s||1,v:hsv.v||1}));
+  });
+  $('pkHexShot').onchange=()=>{
+    let v=$('pkHexShot').value.trim(); if(!v.startsWith('#'))v='#'+v;
+    if(/^#[0-9a-f]{3}$/i.test(v)) v=exp3(v.slice(1));
+    if(/^#[0-9a-f]{6}$/i.test(v)) setShotStop(v.toLowerCase()); else syncShotPicker();
+  };
+  $('shotStopReset').onclick=()=>{
+    const fresh=fitStops(SHOT.glyphs, S.shotFit);
+    if(fresh){ const idx=SHOT.fits.findIndex(o=>o.n===S.shotFit); SHOT.fits[idx]={n:S.shotFit,fit:fresh}; }
+    renderFitsList(); renderShotEditor(); renderShotCode();
+    toast('已还原自动拟合');
+  };
 
   renderShotStyles();
   $('shotTxt').oninput=()=>{S.shotText=$('shotTxt').value;
@@ -1665,7 +1766,10 @@ function setMode2(m){
   $('tabR').classList.toggle('on',R);
   $('tabC').classList.toggle('on',!R);
   $('modeHint').textContent=R?'读别人的标签，取出配色':'做自己的标签';
-  // 逆推时把段落行收起，让源图和预览上下相邻，便于对眼
+  // 逆推跟"创作"预览（顶部 tooltip + lore + 段落编辑）完全无关，整块收起来。
+  // 之前只收起 .dockbody（段落行），.tip.tooltip 那块名字/lore 预览没跟着藏，
+  // 逆推时还会露出上一次在创作模式编辑的内容，容易看混。
+  $('dock').style.display=R?'none':'';
   $('dock').classList.toggle('collapsed',R);
   $('dockToggle').textContent=R?'展开段落':'收起段落';
   if(R&&SHOT) drawSource();

@@ -79,10 +79,11 @@ detectScale → extractGlyphs → fitStops → (用户填文字) → shotCode / 
   2. `isShadow[]` —— 存在另一候选色约等于我的 4 倍 → 我是阴影
   3. 端点剪裁 —— 相邻色差 > 中位步长×3.5 → 界面杂色，两端各最多剪 3 个
 - `fitStops(cols, n)`：暴力扫描内部断点，最小化逐通道平均绝对误差，返回 `{stops, cuts, err, match}`。`match` = `100 - err/255*100`。
-- 「最佳」= **最高分 1.5% 以内的最小 n**，不是最高分（多加色标几乎总能微涨，但每个多 7 格）。
-- `SHOT` 全局存 `{img, w, hh, glyphs, spans, fits}`。`spans` 用来画对齐色带。
-- `shotCode()` / `shotCells()`：`fit.cuts` 的单位是**有墨字符下标**（空格不产生色阶），要跳过空格换算回真实字符位置。
+- 「最佳」= **最高分 3% 以内的最小 n**，不是最高分（多加色标几乎总能微涨，但每个多 7 格；容差取值依据见 SKILL.md 坑表）。
+- `SHOT` 全局存 `{img, w, hh, glyphs, spans, fits}`。`spans` 用来画对齐色带。`fits` 是 `[{n, fit}]`，`fit.stops` 是下游唯一读的颜色来源。
+- `shotCode()` / `shotCells()`：`fit.cuts` 的单位是**有墨色阶下标**（0..glyphs.length-1，空格不产生色阶）。换算成打字文本的字符下标要靠 `mapShotCuts(cuts,map,n,gN)`——纯函数，按比例（`c/gN`）换算，1:1 时等价于直接对应。**不能**假设色阶数跟手打字数相等（框选常连装饰符号一起框进去，色阶数会远多于裸名字字数），那样会导致断点全部 clamp 到同一个字符、中间色标消失。
 - `S.shotEdit` 非 null 表示用户手改过代码，此后自动生成不再覆盖；`liveCode()` 返回当前生效的版本。
+- **手动调色**：自动拟合会把定色字符（比如爱心 emoji）当成普通色阶参与曲线拟合，容易把起止色带偏。`renderShotEditor()` / `syncShotPicker()` / `setShotStop()` 复刻了一套跟「创作」渐变面板同款的 HSV 取色器（各自 DOM id 加 `Shot` 后缀，因为两个面板不会同时显示，但要能独立存在），直接原地改 `fo.fit.stops[S.shotPk]`——不用另开状态，`shotCode`/`shotCells`/`shotApply` 全部自动读到新颜色。`fit.edited` 标记手调过，「选这个」旁边加「已手调」角标；「还原自动拟合」重新跑一次 `fitStops` 换掉那个 n 的 fit 对象。换取色区域（`reExtract()`）会重置 `S.shotPk` 并丢弃 `SHOT.fits`，手调随之作废——这是预期行为，不是 bug。
 
 ## 6. 代码解析器
 
