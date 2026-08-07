@@ -225,7 +225,7 @@ pre.out{margin:0;background:var(--void);border:1px solid var(--line);padding:11p
 <div class="wrap">
 
 <header class="masthead">
-  <h1>标签锻造台</h1>
+  <h1>标签锻造台 <span id="vzonSub" style="font-weight:400">Vzon's item tag creator</span></h1>
   <span class="sub">段落 · 花体 · 符号 · 渐变 · EssentialsX 代码</span>
   <span class="ver">v2</span>
 </header>
@@ -1690,6 +1690,15 @@ auditStyles();
 loadPresets(); savePresets();   // savePresets 顺带探测存储可用性
 setMode2('C');
 renderRuns(); renderStops(); renderSyms(); render(); renderPresets();
+
+/* 页头副标题用用户给的渐变代码上色，跟工具自己的代码解析器（parseCode）复用同一套逻辑。 */
+(function(){
+  const el=$('vzonSub'); if(!el) return;
+  try{
+    const cs=parseCode("{#28a>}Vzon's item{#97c<>} tag {#ddd<>}creator{#048<}");
+    el.innerHTML=cs.map(o=>`<span style="color:${o.col}">${esc(o.ch)}</span>`).join('');
+  }catch(e){}
+})();
 </script>
 </body>
 </html>

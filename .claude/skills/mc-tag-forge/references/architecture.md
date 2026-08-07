@@ -55,6 +55,7 @@ S.runs[] + S.wrap  →  blocks(hover)  →  cells(hover)  →  paintPreview / re
 - `blocks(hover)`：段落套上花体，包裹算作首尾两个无格式块。**`hover` 参数只有预览路径传 true**，输出路径永不传（否则悬停花体卡片时会复制到错误代码）。
 - `cells(hover)`：把全局渐变按字符切给各块，返回 `[{ch, col, f}]`。
 - `codeOut()`：每段各开一个渐变标签；纯颜色断点（段落边界与色标断点重合、格式相同）合并成 `{#x<>}`。`fix` 段用传统色码只占 2 格。
+- `r.mirror`（段落行「镜」按钮）：该段跳出共享的 `globalRamp`，改用 `localRampReversed(n)` ——把 `activeStops()` 反过来，在段落自己的字符数内均分独立跑一遍。`fix` 优先级高于 `mirror`（两者都开时按 `fix` 走，`cells()`/`codeOut()` 的判断顺序都是先查 `fix`）。默认 `mirror:false`，不勾选时行为和原来完全一致。
 
 单段 + 无包裹时，输出与最早的两色/三色版本逐字节一致——改这条链务必跑回归。
 
