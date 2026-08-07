@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>标签锻造台 · Minecraft Tag Forge</title>
+<style>
+:root{
+  --void:#0a010c; --tip-bg:#100110; --tip-edge:#24015b; --panel:#17081f;
+  --panel-hi:#1f0d2a; --line:#2c1638; --ink:#e8dff0; --ink-dim:#9a8fa8;
+  --ink-faint:#6b5f7a; --ember:#f37c52; --deep:#2f5b8b;
+  --mc-green:#55ff55; --mc-red:#ff5555; --mc-gold:#ffaa00; --mc-aqua:#55ffff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--void);color:var(--ink);font-size:14px;line-height:1.55;
+  font-family:"Inter","Segoe UI Variable Text","Segoe UI",system-ui,"Noto Sans SC",sans-serif;
+  -webkit-font-smoothing:antialiased}
+.tip{background:var(--tip-bg);border:2px solid var(--tip-edge);outline:2px solid var(--void)}
+.panel{background:var(--panel);border:1px solid var(--line);padding:14px}
+.wrap{max-width:920px;margin:0 auto;padding:18px 16px 80px}
+header.masthead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  padding-bottom:12px;border-bottom:1px solid var(--line)}
+.masthead h1{margin:0;font-size:17px;font-weight:650;letter-spacing:.02em}
+.masthead .sub{font-size:12px;color:var(--ink-faint)}
+.masthead .ver{margin-left:auto;font-size:11px;color:var(--ink-faint);
+  font-family:ui-monospace,Consolas,monospace}
+
+/* ── 顶部固定区：实时 tooltip + 段落编辑 ── */
+.dock{position:sticky;top:0;z-index:40;background:var(--void);
+  padding:12px 0 11px;border-bottom:1px solid var(--line)}
+.dock.collapsed .dockbody{display:none}
+.dockbody{margin-top:9px;max-height:44vh;overflow-y:auto}
+.tooltip{padding:8px 10px 10px;min-height:84px}
+.tt-name{font-size:0;word-break:break-word}
+.tt-name span{font-size:24px}
+.tt-lore{margin-top:8px;font-size:13px;color:#a8a8a8;line-height:1.7}
+.tt-lore i{color:var(--mc-green);font-style:normal}
+.tt-lore u{color:var(--mc-aqua);text-decoration:none}
+.mcfont{letter-spacing:.06em;
+  font-family:"Segoe UI Symbol","Noto Sans Symbols 2","Apple Symbols","Segoe UI Historic","Segoe UI",system-ui,sans-serif}
+.mcfont.pixel{letter-spacing:.1em;
+  font-family:"Silkscreen","Press Start 2P",ui-monospace,Consolas,monospace}
+.stage-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;
+  font-size:11px;color:var(--ink-faint)}
+
+h2.sec{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-faint);margin:24px 0 8px;display:flex;align-items:center;gap:10px}
+h2.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+
+label.f{display:block;font-size:11px;color:var(--ink-dim);margin-bottom:5px}
+textarea,input[type=text],select{width:100%;background:var(--void);color:var(--ink);
+  border:1px solid var(--line);padding:8px 9px;font-size:15px;font-family:inherit}
+select{font-size:12px;padding:5px 6px}
+textarea{resize:vertical;min-height:44px}
+textarea:focus,input:focus,select:focus{outline:none;border-color:var(--ember)}
+input[type=color]{width:34px;height:30px;padding:0;border:1px solid var(--line);
+  background:var(--void);cursor:pointer}
+button{font-family:inherit;font-size:12px;cursor:pointer;background:var(--panel-hi);
+  color:var(--ink);border:1px solid var(--line);padding:6px 11px}
+button:hover{border-color:var(--ember);color:#fff}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--ember);color:#210b02;border-color:var(--ember);font-weight:650}
+button.primary:hover{background:#ff9067;color:#210b02}
+button.on{border-color:var(--ember);color:var(--ember)}
+button.mini{padding:3px 7px;font-size:11px;min-width:26px}
+.row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+
+/* ── 段落行 ── */
+.run{border:1px solid var(--line);background:var(--void);padding:8px 9px;margin-bottom:7px}
+.run.active{border-color:var(--ember);box-shadow:inset 3px 0 0 var(--ember)}
+.run .hd{display:flex;gap:6px;align-items:center;font-size:10px;
+  color:var(--ink-faint);margin-bottom:6px}
+.run .hd .idx{font-family:ui-monospace,Consolas,monospace;letter-spacing:.1em}
+.run input[type=text]{font-size:14px;padding:6px 8px}
+.run .ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.run .ctl select{max-width:168px;width:auto;flex:0 1 168px}
+.fmtbtn{padding:3px 6px;font-size:11px;font-family:ui-monospace,Consolas,monospace}
+
+/* ── 花体网格 ── */
+.styles{display:grid;grid-template-columns:repeat(auto-fill,minmax(206px,1fr));gap:7px}
+.style{background:var(--void);border:1px solid var(--line);padding:8px 9px;
+  cursor:pointer;text-align:left;display:block;width:100%}
+.style:hover{border-color:var(--ember)}
+.style.active{border-color:var(--ember);background:var(--panel-hi);
+  box-shadow:inset 3px 0 0 var(--ember)}
+.style.active .nm{color:var(--ember)}
+.style .nm{font-size:10px;color:var(--ink-faint);letter-spacing:.06em;
+  display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.style .pv{font-size:16px;color:var(--ink);margin-top:3px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;
+  font-family:"Segoe UI Symbol","Noto Sans Symbols 2","Apple Symbols",system-ui,sans-serif}
+.badge{font-size:9px;padding:1px 5px;letter-spacing:.05em;border:1px solid currentColor;white-space:nowrap}
+.b-safe{color:#4fae6b}
+.b-dup{color:var(--ink-faint)}
+.b-cost{color:var(--mc-gold)}
+
+/* ── 符号 / 包裹 ── */
+.symcats{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+.symcats button{padding:4px 9px;font-size:11px}
+.symgrid{display:flex;flex-wrap:wrap;gap:4px}
+.symgrid button{min-width:34px;height:34px;font-size:17px;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:"Segoe UI Symbol","Noto Sans Symbols 2","Apple Symbols",system-ui,sans-serif}
+.wraps{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:7px}
+.wrapopt{background:var(--void);border:1px solid var(--line);padding:8px 9px;
+  cursor:pointer;text-align:left;width:100%;font-size:14px;
+  font-family:"Segoe UI Symbol","Noto Sans Symbols 2",ui-monospace,monospace}
+.wrapopt:hover{border-color:var(--ember)}
+.wrapopt.active{border-color:var(--ember);box-shadow:inset 3px 0 0 var(--ember)}
+.wrapopt small{display:block;font-size:9px;color:var(--ink-faint);margin-top:3px;
+  font-family:ui-monospace,Consolas,monospace}
+
+/* ── 渐变 / 输出 ── */
+.stops{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.stop{display:flex;flex-direction:column;gap:4px;min-width:148px}
+.ramp{height:14px;border:1px solid var(--line);display:flex;margin-top:10px}
+.ramp div{flex:1}
+pre.out{margin:0;background:var(--void);border:1px solid var(--line);padding:11px 12px;
+  font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:13px;
+  line-height:1.6;white-space:pre-wrap;word-break:break-all;color:#d5c8e2}
+.meter{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ink-faint);margin-top:7px}
+.meter b{font-family:ui-monospace,Consolas,monospace;font-weight:600}
+.over{color:var(--mc-red)}
+.ok{color:#4fae6b}
+.note{font-size:11.5px;color:var(--ink-faint);line-height:1.65;margin-top:8px}
+.note code{font-family:ui-monospace,Consolas,monospace;color:var(--ink-dim)}
+.hexlist{font-family:ui-monospace,Consolas,monospace;font-size:11px;
+  color:var(--ink-faint);margin-top:8px;word-break:break-all;line-height:1.9}
+.hexlist span{padding:1px 3px;border-bottom:2px solid}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+  background:var(--ember);color:#210b02;font-weight:650;font-size:12px;padding:8px 18px;
+  opacity:0;pointer-events:none;transition:opacity .16s;z-index:99}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:560px){.tt-name span{font-size:19px}.wrap{padding:14px 11px 70px}
+  .dockbody{max-height:38vh}}
+
+/* ── 段落：单行一段，34px/段，删除键固定在行末不会跑掉 ── */
+.rl{display:flex;flex-direction:column;gap:4px}
+.rw{display:flex;gap:5px;align-items:center;background:var(--void);
+  border:1px solid var(--line);padding:4px 6px 4px 0}
+.rw:hover{border-color:#402650}
+.rw.active{border-color:var(--ember);box-shadow:inset 3px 0 0 var(--ember)}
+.rw .no{width:20px;flex:0 0 20px;text-align:center;font-size:10px;
+  font-family:ui-monospace,Consolas,monospace;font-weight:700}
+.rw input[type=text]{flex:1 1 110px;min-width:80px;font-size:14px;padding:4px 7px;border-color:#2c1638}
+.rw select{flex:0 0 118px;width:118px;font-size:11px;padding:4px 5px}
+.rw .fmts{display:flex;gap:2px;flex:0 0 auto}
+.fmtbtn{padding:3px 5px;font-size:10px;min-width:20px;line-height:1.2;
+  font-family:ui-monospace,Consolas,monospace}
+.rw .del{flex:0 0 auto;color:var(--ink-faint)}
+.rw .del:hover{color:var(--mc-red);border-color:var(--mc-red)}
+.rw .swatch{width:22px;height:22px;flex:0 0 22px;padding:0;border:1px solid var(--line)}
+@media (max-width:700px){ .rw{flex-wrap:wrap} .rw input[type=text]{flex:1 1 100%} }
+
+/* ── 取色器：饱和明度方块 + 色相条，可拖 ── */
+.picker{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.sv{position:relative;width:196px;height:132px;cursor:crosshair;
+  border:1px solid var(--line);touch-action:none}
+.hue{position:relative;width:22px;height:132px;cursor:ns-resize;
+  border:1px solid var(--line);touch-action:none;
+  background:linear-gradient(to bottom,#f00 0%,#ff0 17%,#0f0 33%,#0ff 50%,
+    #00f 67%,#f0f 83%,#f00 100%)}
+.knob{position:absolute;width:12px;height:12px;border:2px solid #fff;
+  box-shadow:0 0 0 1px #000;pointer-events:none;transform:translate(-50%,-50%)}
+.hueknob{position:absolute;left:-2px;right:-2px;height:4px;border:2px solid #fff;
+  box-shadow:0 0 0 1px #000;pointer-events:none;transform:translateY(-50%)}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.chip{display:flex;gap:6px;align-items:center;background:var(--void);
+  border:1px solid var(--line);padding:4px 9px;font-size:11px;cursor:pointer}
+.chip:hover{border-color:var(--ember)}
+.chip.active{border-color:var(--ember);color:var(--ember)}
+.chip i{width:14px;height:14px;display:block;border:1px solid rgba(255,255,255,.25)}
+.pkinfo{font-family:ui-monospace,Consolas,monospace;font-size:12px;min-width:150px}
+.pkinfo .eff{font-size:10px;color:var(--ink-faint);display:block;margin-top:3px}
+
+/* ── 顶层模式切换 ── */
+.modes{display:flex;gap:0;margin:16px 0 4px;border-bottom:1px solid var(--line)}
+.modes button{border:1px solid var(--line);border-bottom:none;background:transparent;
+  padding:8px 18px;font-size:12px;font-weight:600;margin-bottom:-1px;color:var(--ink-faint)}
+.modes button.on{color:var(--ember);border-color:var(--line);
+  background:var(--panel);border-bottom:1px solid var(--panel)}
+.modes .hint{margin-left:auto;align-self:center;font-size:11px;color:var(--ink-faint);
+  padding-bottom:6px}
+
+/* ── 截图逆推 ── */
+.srcwrap{position:relative;display:inline-block;max-width:100%}
+.srcwrap canvas{display:block;border:1px solid var(--line);image-rendering:pixelated}
+.swstrip{position:relative;height:14px;margin-top:3px;border:1px solid var(--line);
+  background:var(--void)}
+.swstrip i{position:absolute;top:0;bottom:0;display:block}
+.srcwrap canvas{cursor:crosshair;touch-action:none}
+.selrect{position:absolute;border:1px solid var(--ember);background:rgba(243,124,82,.16);
+  pointer-events:none;display:none}
+.zoombar{display:flex;gap:5px;align-items:center;margin:10px 0 6px;font-size:11px;
+  color:var(--ink-faint);flex-wrap:wrap}
+.drop{border:1px dashed var(--line);background:var(--void);padding:22px 14px;
+  text-align:center;font-size:12px;color:var(--ink-faint);cursor:pointer}
+.drop:hover,.drop.over{border-color:var(--ember);color:var(--ink-dim)}
+.shot{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-top:10px}
+.shot canvas{border:1px solid var(--line);image-rendering:pixelated;max-width:100%}
+.fitrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  border:1px solid var(--line);background:var(--void);padding:7px 9px;margin-bottom:5px}
+.fitrow.sel{border-color:var(--ember);background:var(--panel-hi)}
+.fitrow .rec{font-size:9px;padding:1px 5px;border:1px solid #4fae6b;color:#4fae6b;white-space:nowrap}
+/* 花体预览 chip：34 种同时可见，不用 hover 也不用先选中 */
+.stchips{display:flex;flex-wrap:wrap;gap:4px;max-height:132px;overflow-y:auto;
+  border:1px solid var(--line);padding:6px;background:var(--void)}
+.stchip{background:transparent;border:1px solid var(--line);padding:3px 7px;cursor:pointer;
+  font-size:13px;font-family:"Segoe UI Symbol","Noto Sans Symbols 2",system-ui,sans-serif;
+  max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stchip:hover{border-color:var(--ember)}
+.stchip.on{border-color:var(--ember);color:var(--ember);background:var(--panel-hi)}
+.stchip small{display:block;font-size:9px;color:var(--ink-faint);font-family:inherit}
+.repro{background:var(--tip-bg);border:2px solid var(--tip-edge);outline:2px solid var(--void);
+  padding:6px 9px;font-size:0;word-break:break-word;margin-top:4px}
+.repro span{font-size:22px}
+.fitrow .bar{display:flex;height:12px;flex:1;min-width:120px}
+.fitrow .bar div{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <h1>标签锻造台</h1>
+  <span class="sub">段落 · 花体 · 符号 · 渐变 · EssentialsX 代码</span>
+  <span class="ver">v2</span>
+</header>
+
+<div class="dock" id="dock">
+  <div class="tip tooltip">
+    <div class="tt-name mcfont" id="pv"></div>
+    <div class="tt-lore" id="lore">
+      <div>Power VI</div><div><i>◆ Hellfire V</i></div><div><u>Tier: LEGENDARY</u></div>
+    </div>
+  </div>
+  <div class="stage-bar">
+    <button id="fontToggle">字形：系统</button>
+    <button id="loreToggle" class="on">lore 参照</button>
+    <button id="addRun">+ 加一段</button>
+    <span class="grow"></span>
+    <button id="dockToggle">收起段落</button>
+  </div>
+  <div class="dockbody" id="dockbody">
+    <div class="rl" id="runs"></div>
+  </div>
+</div>
+<div class="note" style="margin-bottom:2px">每段可以有自己的花体和格式，渐变是全局一条、按字符切给各段。
+花体只改显示，不写回原文。<b>每多一段大约多 12 个字符</b>，看输出栏的长度计。</div>
+
+<div class="modes">
+  <button id="tabC" class="on">创作</button>
+  <button id="tabR">逆推</button>
+  <span class="hint" id="modeHint">做自己的标签</span>
+</div>
+
+<div id="viewR" style="display:none">
+<div class="panel">
+  <div class="drop" id="drop">把截图拖进来，或 <b>Ctrl+V 直接粘贴</b>，或点这里选文件<br>
+    <span style="font-size:11px">不需要整数倍原图 —— 取色是缩放无关的</span></div>
+  <input type="file" id="file" accept="image/*" style="display:none">
+  <div id="shotOut"></div>
+</div>
+</div>
+
+<div id="viewC">
+<h2 class="sec">花体 · 作用于当前选中的段</h2>
+<div class="panel">
+  <div class="note" style="margin:0 0 10px">
+    <span class="badge b-safe">实测可用</span> 游戏内辨识度高；
+    <span class="badge b-dup">近似普通字 / 斜体</span> 能显示，但 8×16 点阵吃掉了字重和衬线差别；
+    鼠标<b>悬停</b>在卡片上，顶部预览会实时套用该花体，移开自动恢复 —— 不用先点选。
+  </div>
+  <div class="styles" id="styles"></div>
+  <div class="row" style="margin-top:12px">
+    <button id="bProbe">花体探针（34 种）</button>
+    <button id="bProbeE">emoji 探针（候选 72 个）</button>
+  </div>
+  <pre class="out" id="probeOut" style="display:none;margin-top:9px"></pre>
+  <div class="note" id="audit"></div>
+</div>
+
+<h2 class="sec">符号 · 插入当前选中的段</h2>
+<div class="panel">
+  <div class="symcats" id="symcats"></div>
+  <div class="symgrid" id="symgrid"></div>
+  <div class="note" id="symnote"></div>
+</div>
+
+<h2 class="sec">包裹</h2>
+<div class="panel">
+  <div class="wraps" id="wraps"></div>
+  <div class="note">包裹加在整条标签的最外层，渐变会流经它。括号里是它吃掉的字符数。</div>
+</div>
+
+
+
+<h2 class="sec">渐变</h2>
+<div class="panel">
+  <div class="row" style="margin-bottom:12px">
+    <button id="mode2" class="on">2 色</button>
+    <button id="mode3">3 色</button>
+    <button id="mode4">4 色</button>
+    <span class="grow"></span>
+    <select id="presetGrad" style="max-width:200px"></select>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="picker">
+    <div class="sv" id="sv"><div class="knob" id="svKnob"></div></div>
+    <div class="hue" id="hue"><div class="hueknob" id="hueKnob"></div></div>
+    <div class="pkinfo">
+      <input type="text" id="pkHex" spellcheck="false" style="font-family:inherit;font-size:12px">
+      <span class="eff" id="pkEff"></span>
+    </div>
+  </div>
+  <div id="cutWrap" style="display:none;margin-top:12px"></div>
+  <div class="ramp" id="ramp"></div>
+  <div class="hexlist" id="hexlist"></div>
+</div>
+
+<h2 class="sec">输出</h2>
+<div class="panel">
+  <div class="row" style="margin-bottom:11px">
+    <label class="f" style="margin:0">颜色编码</label>
+    <button id="enc3" class="on">3 位 · 4096 色</button>
+    <button id="enc6">6 位 · 1677 万</button>
+    <button id="encL">色码 · 16 色</button>
+  </div>
+  <pre class="out" id="code"></pre>
+  <div class="meter">
+    <span>代码长度 <b id="mLen">0</b> / <b><input type="text" id="cap" value="50"
+      style="width:38px;display:inline;padding:1px 4px;font-size:11px;text-align:center"></b>
+      <span id="mVerdict"></span></span>
+    <span>可见字符 <b id="mVis">0</b></span>
+    <span>段数 <b id="mRuns">1</b></span>
+  </div>
+  <div class="meter" style="margin-top:4px"><span id="mCmp"></span></div>
+  <div class="note" id="mSave" style="margin-top:6px"></div>
+  <div class="row" style="margin-top:11px">
+    <button class="primary" id="bCopy">复制代码</button>
+    <button id="bCopyPlain">只复制文字</button>
+    <span class="grow"></span>
+    <button id="bSave">存为预设</button>
+  </div>
+  <div class="note">50 是 anvil 改名默认上限，<b>颜色代码一起算</b>，emoji 算 2 格。
+    告示牌按像素宽度限制、昵称看插件配置，上限可改。</div>
+</div>
+
+<h2 class="sec">预设</h2>
+<div class="panel">
+  <div id="presetList" class="note" style="margin:0 0 10px">还没有预设。</div>
+  <div class="row">
+    <button id="bExport">导出全部（复制 JSON）</button>
+    <button id="bImport">导入（粘贴 JSON）</button>
+  </div>
+  <textarea id="ioBox" style="display:none;margin-top:9px;min-height:80px;
+    font-family:ui-monospace,Consolas,monospace;font-size:11px"></textarea>
+  <div class="note">预设存在内存里，关掉页面就没了 —— 用「导出」把 JSON 存进 txt，下次「导入」贴回来。</div>
+</div>
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+<script>
+/* ═══════════════ 花体映射 ═══════════════ */
+const U='ABCDEFGHIJKLMNOPQRSTUVWXYZ', L='abcdefghijklmnopqrstuvwxyz', D='0123456789';
+function seq(start,holes){
+  const out=[];
+  for(let i=0;i<26;i++) out.push(String.fromCodePoint(start+i));
+  if(holes) for(const k in holes){
+    const i = k===k.toUpperCase()&&U.includes(k) ? U.indexOf(k) : L.indexOf(k);
+    if(i>=0) out[i]=holes[k];
+  }
+  return out.join('');
+}
+const digits = s => { let o=''; for(let i=0;i<10;i++) o+=String.fromCodePoint(s+i); return o; };
+
+/* comb: 组合符装饰（字符数翻倍）  rev: 反转并镜像括号 */
+const STYLES=[
+ {n:'小型大写', up:'ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ', lo:'ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ'},
+ {n:'音节文字', up:'ᗩᗷᑕᗪEᖴGᕼIᒍᛕᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ', lo:'ᗩᗷᑕᗪEᖴGᕼIᒍᛕᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ'},
+ {n:'西里尔仿字', up:'ΛᏰᏨᎠᎬFԌҤᎥᏥӃᏝᎷNᎾᏢႭᖆᏕፕႮᏉᏇХYᏃ', lo:'ɑҍϲժɛƒցհìʝӄⅼʍռօքզʀʂէմѵա×վᴢ'},
+ {n:'西里尔大写', up:'АВСDЄҒԌНІЈКŁМИОРQЯЅТЦVШХУZ', lo:'АВСDЄҒԌНІЈКŁМИОРQЯЅТЦVШХУZ'},
+ {n:'希腊仿字', up:'ΑΒϹDΕϜGΗΙJΚΛΜΝΟΡQΡЅΤΥVΩΧΥΖ', lo:'αβϲδεφγηιjκλμηορqɾςτυνωχγζ'},
+ {n:'希伯来混排', up:'ǞɮĊƉƐʄƓⱧɨJӃʟϺⱤƠƤԺƦֆȶʊʋῳXʏʐ', lo:'ǟɮċɖɛʄɢɦɨjӄʟʍռօքզʀֆȶʊʋῳxʏʐ'},
+ {n:'划线拉丁', up:'ȺɃȻĐɆFǤĦƗɈꝀŁMNØᵽɊɌSŦɄVWXɎƵ', lo:'ⱥƀȼđɇfǥħɨɉꝁłmnøᵽɋɍsŧᵾvwxɏƶ'},
+ {n:'符文', up:'ᚨᛒᚴᛞᛖᚠᚷᚼᛁᛃᚴᛚᛗᚾᚮᛈᛩᚱᛊᛏᚢᚡᚹᛪᚤᛉ', lo:'ᚨᛒᚴᛞᛖᚠᚷᚼᛁᛃᚴᛚᛗᚾᚮᛈᛩᚱᛊᛏᚢᚡᚹᛪᚤᛉ'},
+ {n:'全角', up:seq(0xFF21), lo:seq(0xFF41), dg:digits(0xFF10), sp:'\u3000'},
+ {n:'圆圈', up:seq(0x24B6), lo:seq(0x24D0), dg:'⓪'+digits(0x2460)},
+ {n:'带括号', up:seq(0x249C), lo:seq(0x249C), dg:'⑽'+digits(0x2474)},
+ {n:'上标', up:'ᴬᴮꟲᴰᴱꟳᴳᴴᴵᴶᴷᴸᴹᴺᴼᴾꟴᴿˢᵀᵁⱽᵂˣʸᶻ', lo:'ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖ۹ʳˢᵗᵘᵛʷˣʸᶻ', dg:'⁰¹²³⁴⁵⁶⁷⁸⁹'},
+ {n:'下标', up:'ₐBCDₑFGₕᵢⱼₖₗₘₙₒₚQᵣₛₜᵤᵥwₓYZ', lo:'ₐbcdₑfgₕᵢⱼₖₗₘₙₒₚqᵣₛₜᵤᵥwₓyz', dg:'₀₁₂₃₄₅₆₇₈₉'},
+ {n:'倒转', up:'∀ᗺƆᗡƎℲ⅁HIſʞ⅂WNOԀΌᴚSʇ∩ΛMXʎZ', lo:'ɐqɔpǝɟƃɥıɾʞlɯuodbɹsʇnʌʍxʎz', rev:true},
+ {n:'花体', up:seq(0x1D49C,{B:'ℬ',E:'ℰ',F:'ℱ',H:'ℋ',I:'ℐ',L:'ℒ',M:'ℳ',R:'ℛ'}),
+             lo:seq(0x1D4B6,{e:'ℯ',g:'ℊ',o:'ℴ'})},
+ {n:'花体粗', up:seq(0x1D4D0), lo:seq(0x1D4EA)},
+ {n:'哥特体', up:seq(0x1D504,{C:'ℭ',H:'ℌ',I:'ℑ',R:'ℜ',Z:'ℨ'}), lo:seq(0x1D51E)},
+ {n:'哥特粗', up:seq(0x1D56C), lo:seq(0x1D586)},
+ {n:'古意大利', up:'𐌀𐌁𐌂𐌃𐌄𐌅𐌂𐌇𐌉𐌉𐌊𐌋𐌌𐌍𐌏𐌐𐌒𐌓𐌔𐌕𐌖𐌅𐌅𐌗𐌖𐌆',
+               lo:'𐌀𐌁𐌂𐌃𐌄𐌅𐌂𐌇𐌉𐌉𐌊𐌋𐌌𐌍𐌏𐌐𐌒𐌓𐌔𐌕𐌖𐌅𐌅𐌗𐌖𐌆'},
+ {n:'方框', up:seq(0x1F130), lo:seq(0x1F130)},
+ {n:'反白方框', up:seq(0x1F170), lo:seq(0x1F170)},
+ {n:'反白圆圈', up:seq(0x1F150), lo:seq(0x1F150), dg:'⓿'+digits(0x278A)},
+ {n:'衬线粗体', up:seq(0x1D400), lo:seq(0x1D41A), dg:digits(0x1D7CE)},
+ {n:'衬线斜体', up:seq(0x1D434), lo:seq(0x1D44E,{h:'ℎ'})},
+ {n:'衬线粗斜', up:seq(0x1D468), lo:seq(0x1D482)},
+ {n:'黑板粗体', up:seq(0x1D538,{C:'ℂ',H:'ℍ',N:'ℕ',P:'ℙ',Q:'ℚ',R:'ℝ',Z:'ℤ'}),
+               lo:seq(0x1D552), dg:digits(0x1D7D8)},
+ {n:'无衬线', up:seq(0x1D5A0), lo:seq(0x1D5BA), dg:digits(0x1D7E2)},
+ {n:'无衬线粗', up:seq(0x1D5D4), lo:seq(0x1D5EE), dg:digits(0x1D7EC)},
+ {n:'无衬线斜', up:seq(0x1D608), lo:seq(0x1D622)},
+ {n:'等宽', up:seq(0x1D670), lo:seq(0x1D68A), dg:digits(0x1D7F6)},
+ /* 预组合字符：单一码点，1 格，点画在字形里所以贴合。
+    拉丁文没有预组合形式的字母保持原样 —— 这正是那些花体网站的做法。 */
+ {n:'预组合·双点', pre:{a:'ä',e:'ë',i:'ï',o:'ö',u:'ü',y:'ÿ',t:'ẗ',w:'ẅ',x:'ẍ',h:'ḧ',
+   A:'Ä',E:'Ë',I:'Ï',O:'Ö',U:'Ü',Y:'Ÿ',W:'Ẅ',X:'Ẍ',H:'Ḧ'}},
+ {n:'预组合·点上', pre:{a:'ȧ',b:'ḃ',c:'ċ',d:'ḋ',e:'ė',f:'ḟ',g:'ġ',h:'ḣ',m:'ṁ',n:'ṅ',
+   o:'ȯ',p:'ṗ',r:'ṙ',s:'ṡ',t:'ṫ',w:'ẇ',x:'ẋ',y:'ẏ',z:'ż',
+   A:'Ȧ',B:'Ḃ',C:'Ċ',D:'Ḋ',E:'Ė',F:'Ḟ',G:'Ġ',H:'Ḣ',I:'İ',M:'Ṁ',N:'Ṅ',O:'Ȯ',P:'Ṗ',
+   R:'Ṙ',S:'Ṡ',T:'Ṫ',W:'Ẇ',X:'Ẋ',Y:'Ẏ',Z:'Ż'}},
+ {n:'预组合·波浪', pre:{a:'ã',e:'ẽ',i:'ĩ',n:'ñ',o:'õ',u:'ũ',v:'ṽ',y:'ỹ',
+   A:'Ã',E:'Ẽ',I:'Ĩ',N:'Ñ',O:'Õ',U:'Ũ',V:'Ṽ',Y:'Ỹ'}},
+ {n:'预组合·尖音', pre:{a:'á',c:'ć',e:'é',g:'ǵ',i:'í',k:'ḱ',l:'ĺ',m:'ḿ',n:'ń',o:'ó',
+   p:'ṕ',r:'ŕ',s:'ś',u:'ú',w:'ẃ',y:'ý',z:'ź',
+   A:'Á',C:'Ć',E:'É',G:'Ǵ',I:'Í',K:'Ḱ',L:'Ĺ',M:'Ḿ',N:'Ń',O:'Ó',P:'Ṕ',R:'Ŕ',S:'Ś',
+   U:'Ú',W:'Ẃ',Y:'Ý',Z:'Ź'}},
+];
+
+/* ── 探针实测 2026-08-06 · HoloCraft · 成书：前 23 种零方框 ──
+   d 辨识度高 / p 游戏内近似普通字 / i 近似斜体 / c 字符翻倍（组合符，未实测） */
+const GAME={};
+'小型大写,音节文字,西里尔仿字,全角,圆圈,上标,下标,倒转,花体,花体粗,哥特体,哥特粗,方框,反白圆圈'
+  .split(',').forEach(n=>GAME[n]='d');
+'衬线粗体,黑板粗体,无衬线,无衬线粗,等宽'.split(',').forEach(n=>GAME[n]='p');
+'衬线斜体,衬线粗斜,无衬线斜'.split(',').forEach(n=>GAME[n]='i');
+'西里尔大写,希腊仿字,希伯来混排,划线拉丁,符文,带括号,古意大利,反白方框'.split(',').forEach(n=>GAME[n]='n');
+'预组合·双点,预组合·点上,预组合·波浪,预组合·尖音'.split(',').forEach(n=>GAME[n]='e');
+STYLES.forEach(s=>{ if(s.comb) GAME[s.n]='c'; });
+const BADGE={
+  d:'<span class="badge b-safe">实测可用</span>',
+  p:'<span class="badge b-dup">近似普通字</span>',
+  i:'<span class="badge b-dup">近似斜体</span>',
+  n:'<span class="badge b-dup">未实测</span>',
+  c:'<span class="badge b-cost">翻倍 + MC 会飘</span>',
+  e:'<span class="badge b-safe">实测 · 1 格贴合</span>',
+};
+
+/* 自检：手打映射表曾经把反白方框的 i/j 打成 G/H，Prime 显示成 PRGME。
+   这里在启动时验证每张表 26 个码点且无意外重复，问题直接打到 console。 */
+const DUP_OK={'希腊仿字':1,'符文':1,'古意大利':1,'希伯来混排':1,'倒转':1,'下标':1,'划线拉丁':1};
+function auditStyles(){
+  const bad=[];
+  STYLES.forEach(s=>{
+    ['up','lo'].forEach(k=>{
+      if(!s[k]) return;
+      const a=[...s[k]];
+      if(a.length!==26) bad.push(`${s.n}.${k} 长度 ${a.length}，应为 26`);
+      if(!DUP_OK[s.n]){
+        const seen={}, d=[];
+        a.forEach((c,i)=>{ if(seen[c]!==undefined) d.push(`${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[i]}=${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[seen[c]]}=${c}`); else seen[c]=i; });
+        if(d.length) bad.push(`${s.n}.${k} 重复字形：${d.join(' ')}`);
+      }
+    });
+  });
+  /* 沙箱里 console 的方法不保证齐全，所以自检结果走界面，不走 console。 */
+  const box=document.getElementById('audit');
+  if(box) box.innerHTML = bad.length
+    ? `<span class="over">花体表自检失败（${bad.length} 项）：</span> ${bad.map(esc).join('；')}`
+    : `自检通过：${STYLES.length} 种花体映射表完整。`;
+  return bad;
+}
+
+const FLIP={'(' :')',')':'(','[':']',']':'[','{':'}','}':'{','<':'>','>':'<',
+ '「':'」','」':'「','『':'』','』':'『','【':'】','】':'【','〈':'〉','〉':'〈',
+ '《':'》','》':'《','〔':'〕','〕':'〔','〖':'〗','〗':'〖','/':'\\','\\':'/'};
+
+function apply(st,s){
+  if(!st) return s;
+  if(st.pre) return [...s].map(c=>st.pre[c]||c).join('');
+  if(st.comb) return [...s].map(c=>/[A-Za-z0-9]/.test(c)?c+st.comb:c).join('');
+  const up=[...st.up], lo=[...st.lo], dg=st.dg?[...st.dg]:null;
+  let out=[...s].map(ch=>{
+    const iu=U.indexOf(ch); if(iu>=0) return up[iu];
+    const il=L.indexOf(ch); if(il>=0) return lo[il];
+    const id=D.indexOf(ch); if(id>=0&&dg) return dg[id];
+    if(ch===' '&&st.sp) return st.sp;
+    return ch;
+  });
+  if(st.rev){ out=out.map(c=>FLIP[c]||c); out.reverse(); }
+  return out.join('');
+}
+
+/* ═══════════════ 包裹 ═══════════════ */
+const WRAPS=[
+ ['无', '', ''],
+ ['方块渐变', '█▓▒░', '░▒▓█'],
+ ['方块长', '█▓▒▒░░░', '░░░▒▒▓█'],
+ ['角括号', '「', '」'],
+ ['双角括号', '『', '』'],
+ ['黑镜头括号', '【', '】'],
+ ['双横线', '▬▬', '▬▬'],
+ ['星彡', '★彡', '彡★'],
+ ['双箭头', '»»', '««'],
+ ['三角', '▶', '◀'],
+ ['菱形', '⟦◆', '◆⟧'],
+ ['花饰', '✦═', '═✦'],
+];
+
+/* ═══════════════ 符号库 ═══════════════ */
+const SYMS={
+ '括号':'「」『』【】〖〗〔〕《》〈〉〘〙〚〛（）｛｝［］⦃⦄⟨⟩⟦⟧',
+ '星花':'★☆✦✧✩✪✫✬✭✮✯✰❂✱✲✳✴✵✶✷✸✹✺✻✽❃❉❋❀❁✿',
+ '箭头':'→←↑↓↔↕⇒⇐⇔➜➤➥➦➧➨➩➪➫➬➭➮➯⤳↝⟶⟹≫≪»«彡',
+ '记号':'✔✓✗✘✖☑☒⊘⊗∅※',
+ '几何':'◆◇◈◊●○◐◑◉⦿■□▪▫▰▱▲▼◀▶⬖⬗⧫⬢⬣',
+ '方块':'█▓▒░▄▀▬▭─━│┃',
+ '装饰':'⚜✠✞✟❖⟡⟢⟣⌘⌬⌇〄',
+ '器物':'⚔⚒⚓⚡☢☣☠♨♪♫♬✎✐✒⚙⌛☾☽☀☁☂❄✂',
+ '心与脸':'❤❥♡♥♦♣♠☺☻☹✌ツ',
+ '分隔':'〓═━┃│┊┋∙·•⁘⁙⋯…‧',
+ '服务器 /emoji':'❤★✔✖➜☺✌☹✂☠',
+ '已验证 emoji':'🐙',
+};
+const SYMNOTE={
+ '服务器 /emoji':'这些是 HoloCraft <code>/emoji</code> 短代码对应的字符本体。短代码（<code>:star:</code>）只在聊天生效，物品名要用字符本体。',
+ '已验证 emoji':'目前只有 🐙 实测确认在你服渲染成像素字形。其余资源包 emoji 还没跑探针。',
+ '方块':'█▓▒░ 用来做渐隐边框，但每个都占 1 格，很吃 50 上限。',
+};
+
+/* ═══════════════ 状态 ═══════════════ */
+const FKEYS=['l','o','n','m','k'];
+const newRun = t => ({t:t||'', st:null, f:{l:0,o:0,n:0,m:0,k:0}, fix:null});
+const S={
+  runs:[newRun('「Takodachi 🐙 Prime」')], active:0,
+  wrap:0, nStops:2, cuts:[], cap:50, pk:0,
+  stops:['#f37c52','#8860c6','#5555ff','#2f5b8b'],
+  enc:'hex3', pixel:false, lore:true, presets:[], cat:'括号',
+  shotText:'', shotStyle:null, shotFit:0,
+  shotFmt:{l:0,o:0,n:0,m:0,k:0}, shotEdit:null, shotCrop:null,
+};
+
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[<>&"]/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
+const hex2rgb=h=>{h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));};
+const rgb2hex=a=>'#'+a.map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('');
+const lerp=(a,b,t)=>{const A=hex2rgb(a),B=hex2rgb(b);return rgb2hex([0,1,2].map(i=>A[i]+(B[i]-A[i])*t));};
+
+/* ── 三档编码 ── */
+const LEGACY={'0':'#000000','1':'#0000aa','2':'#00aa00','3':'#00aaaa','4':'#aa0000',
+ '5':'#aa00aa','6':'#ffaa00','7':'#aaaaaa','8':'#555555','9':'#5555ff',
+ 'a':'#55ff55','b':'#55ffff','c':'#ff5555','d':'#ff55ff','e':'#ffff55','f':'#ffffff'};
+const LEGNAME={'0':'黑','1':'深蓝','2':'深绿','3':'深青','4':'深红','5':'深紫','6':'金',
+ '7':'灰','8':'深灰','9':'蓝','a':'绿','b':'青','c':'红','d':'品红','e':'黄','f':'白'};
+const to3 = h => hex2rgb(h).map(v=>Math.round(v/17).toString(16)).join('');
+const exp3 = s => '#'+[...s].map(c=>c+c).join('');
+function legOf(hex){
+  const A=hex2rgb(hex); let best='f',bd=1e9;
+  for(const k in LEGACY){const B=hex2rgb(LEGACY[k]);
+    const d=(A[0]-B[0])**2+(A[1]-B[1])**2+(A[2]-B[2])**2;
+    if(d<bd){bd=d;best=k;}}
+  return best;
+}
+const effective = h => S.enc==='leg' ? LEGACY[legOf(h)] : S.enc==='hex3' ? exp3(to3(h)) : h;
+const tag = (h,suf) => S.enc==='leg' ? '{#&'+legOf(h)+suf+'}'
+                     : S.enc==='hex3' ? '{#'+to3(h)+suf+'}'
+                     : '{#'+h.slice(1)+suf+'}';
+const fmtCode = f => FKEYS.filter(k=>f&&f[k]).map(k=>'&'+k).join('');
+
+/* ═══════════════ 组装 ═══════════════ */
+function rampN(n,from,to){
+  if(n<=0) return [];
+  if(n===1) return [from];
+  return Array.from({length:n},(_,i)=>lerp(from,to,i/(n-1)));
+}
+/* 段落 → 已上花体的字符块，包裹算作首尾两个无格式段 */
+let HOVER=null;
+/* hover 花体只用于预览。输出路径一律不传 hover，避免悬停时复制到错误的代码。 */
+function blocks(hover){
+  const w=WRAPS[S.wrap], out=[];
+  S.runs.forEach((r,i)=>{
+    // hover 花体卡片时临时套用到当前段，鼠标移开就恢复 —— 不写入状态
+    const si = (hover && HOVER!==null && i===S.active) ? (HOVER<0?null:HOVER) : r.st;
+    const styled = apply(si==null?null:STYLES[si], r.t);
+    if(styled.length) out.push({chars:[...styled], f:r.f, fix:r.fix});
+  });
+  /* 包裹并进首尾段，不另开块。做成独立块的话前后各要多一对渐变标签，
+     一对「」就要 30 格；并进去只花字符本身的 2 格。
+     副作用：包裹会继承首/末段的格式和定色，视觉上通常正是想要的。 */
+  if(out.length){
+    if(w[1]) out[0].chars=[...w[1], ...out[0].chars];
+    if(w[2]) out[out.length-1].chars=[...out[out.length-1].chars, ...w[2]];
+  } else if(w[1]||w[2]){
+    out.push({chars:[...(w[1]||''), ...(w[2]||'')], f:null, fix:null, deco:true});
+  }
+  return out;
+}
+/* N 个色标 → N-1 段，各段独立线性插值（EssentialsX 的 {#a>}X{#b<>}Y{#c<} 行为） */
+function activeStops(){
+  const n=S.nStops;
+  if(n===2) return [S.stops[0],S.stops[3]];
+  if(n===3) return [S.stops[0],S.stops[1],S.stops[3]];
+  return [S.stops[0],S.stops[1],S.stops[2],S.stops[3]];
+}
+/* 断点：内部 N-2 个，缺省均分；越界则重新均分 */
+function bounds(total){
+  const need=S.nStops-2;
+  let c=(S.cuts||[]).slice(0,need).map(v=>Math.round(v));
+  const ok = c.length===need && c.every((v,i)=>v>=1 && v<=total-1 && (i===0||v>c[i-1]));
+  if(!ok) c=Array.from({length:need},(_,i)=>Math.max(1,Math.round(total*(i+1)/(need+1))));
+  S.cuts=c;
+  return [0,...c,total];
+}
+function globalRamp(total){
+  if(total<=0) return [];
+  const st=activeStops().map(effective), b=bounds(total), out=[];
+  for(let i=0;i<st.length-1;i++) out.push(...rampN(b[i+1]-b[i], st[i], st[i+1]));
+  return out;
+}
+function cells(hover){
+  const bs=blocks(hover), total=bs.reduce((n,b)=>n+b.chars.length,0);
+  const cols=globalRamp(total);
+  const out=[]; let i=0;
+  bs.forEach(b=>b.chars.forEach(ch=>{
+    out.push({ch, col:b.fix?effective(b.fix):cols[i], f:b.f});
+    i++;
+  }));
+  return out;
+}
+/* 输出：每段各开一个渐变标签；纯颜色断点合并成 {#x<>} */
+function codeOut(){
+  const bs=blocks(), total=bs.reduce((n,b)=>n+b.chars.length,0);
+  if(!total) return '';
+  const cols=globalRamp(total);
+  // 每个色标断点也是一个切点，和段落边界合并
+  const cuts=bounds(total).slice(1,-1);
+  const segs=[]; let i=0;
+  bs.forEach(b=>{
+    const n=b.chars.length;
+    const inner=cuts.filter(c=>c>i && c<i+n).map(c=>c-i);
+    const marks=[0,...inner,n];
+    for(let m=0;m<marks.length-1;m++){
+      const a=marks[m], z=marks[m+1];
+      segs.push({text:b.chars.slice(a,z).join(''), f:b.f, fix:b.fix,
+                 c0:cols[i+a], c1:cols[i+z-1]});
+    }
+    i+=n;
+  });
+  let out='', pend=null, lastF=null;
+  segs.forEach(s=>{
+    const f=fmtCode(s.f);
+    if(s.fix){
+      if(pend!==null){out+=tag(pend,'<');pend=null;}
+      out+='&'+legOf(s.fix)+f+s.text; lastF=f;
+    } else if(pend!==null && pend===s.c0 && f===lastF){
+      out+=tag(s.c0,'<>')+f+s.text; pend=s.c1;
+    } else {
+      if(pend!==null){out+=tag(pend,'<');pend=null;}
+      out+=tag(s.c0,'>')+f+s.text; pend=s.c1; lastF=f;
+    }
+  });
+  if(pend!==null) out+=tag(pend,'<');
+  return out;
+}
+function lens(){
+  const keep=S.enc, o={};
+  for(const e of ['hex6','hex3','leg']){S.enc=e;o[e]=codeOut().length;}
+  S.enc=keep; return o;
+}
+const plainText = () => blocks().map(b=>b.chars.join('')).join('');
+
+/* ═══════════ 探针 ═══════════
+   HoloCraft 的资源包把标准 Unicode emoji 码点重映射成像素字形（🐙 已实测）。
+   候选按「这个服最可能收录什么」排：Hololive 粉丝名/象征优先，其次 MC 通用图标。
+   分三批是因为成本不同 —— 增补平面每个 2 格，BMP 每个 1 格。 */
+const EMOJI_PROBE=[
+ ['A','增补平面 · Hololive 象征（每个 2 格）', [
+   '\u{1F419}\u{1F415}\u{1F9B4}\u{1F988}\u{1F989}\u{1F430}\u{1F955}\u{1F98A}',
+   '\u{1F414}\u{1F423}\u{1F42D}\u{1F431}\u{1F359}\u{1F986}\u{1F411}\u{1F409}',
+   '\u{1F987}\u{1F981}\u{1F98C}\u{1F331}\u{1F338}\u{1F339}\u{1F3AA}\u{1F3A8}',
+   '\u{1F480}\u{1F48E}\u{1F608}\u{1F47C}\u{1F451}\u{1F3B2}\u{1F386}\u{1F36B}',
+ ]],
+ ['B','增补平面 · MC 通用图标（每个 2 格）', [
+   '\u{1F5E1}\u{1F3F9}\u{1F6E1}\u{1FA93}\u{1F525}\u{1F4A7}\u{1F33F}\u{1FA99}',
+   '\u{1F499}\u{1F49A}\u{1F49C}\u{1F49B}\u{1F5A4}\u{1F90D}\u{1F356}\u{1F34E}',
+ ]],
+ ['C','BMP · 只占 1 格，性价比最高', [
+   '\u2694\u26CF\u26A1\u2744\u2605\u2606\u2764\u2665',
+   '\u2B50\u2604\u2620\u2693\u231B\u23F3\u263C\u2600',
+   '\u263D\u2726\u2727\u2731\u2733\u274B\u2702\u270C',
+ ]],
+];
+function probeStyles(){
+  return STYLES.map((st,i)=>`${String(i+1).padStart(2,'0')} ${apply(st,'Ta1')}`).join('\n');
+}
+function probeEmoji(){
+  return EMOJI_PROBE.map(([tag,,rows])=>
+    rows.map((r,i)=>`${tag}${i+1} ${r}`).join('\n')).join('\n');
+}
+
+/* ═══════════════ 渲染 ═══════════════ */
+const KPOOL='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
+function paintPreview(){
+  const cs=cells(true);
+  const pv=$('pv'); pv.className='tt-name mcfont'+(S.pixel?' pixel':'');
+  pv.innerHTML=cs.map(o=>{
+    const f=o.f||{};
+    const sh=rgb2hex(hex2rgb(o.col||'#ffffff').map(v=>v*0.25));
+    const d=[];
+    if(f.l)d.push('font-weight:700');
+    if(f.o)d.push('font-style:italic');
+    const deco=[]; if(f.n)deco.push('underline'); if(f.m)deco.push('line-through');
+    if(deco.length)d.push('text-decoration:'+deco.join(' '));
+    const ch = o.ch===' ' ? '&nbsp;' : esc(o.ch);
+    return `<span class="${f.k?'k':''}" style="color:${o.col};text-shadow:.09em .09em 0 ${sh};${d.join(';')}">${ch}</span>`;
+  }).join('');
+  return cs;
+}
+function render(){
+  const cs=paintPreview();
+  $('lore').style.display=S.lore?'':'none';
+  $('ramp').innerHTML=cs.map(o=>`<div style="background:${o.col}"></div>`).join('');
+  $('hexlist').innerHTML=cs.map(o=>
+    `<span style="border-color:${o.col}">${o.col.slice(1).toUpperCase()}</span>`).join(' ');
+
+  const code=codeOut(), Lm=lens();
+  $('code').textContent=code||'（空）';
+  $('mLen').textContent=code.length;
+  $('mVis').textContent=cs.length;
+  $('mRuns').textContent=S.runs.length+(S.wrap?' + 包裹':'');
+  const over=code.length>S.cap;
+  $('mVerdict').textContent=over?`超出 ${code.length-S.cap}`:'放得下';
+  $('mVerdict').className=over?'over':'ok';
+  $('mLen').className=over?'over':'';
+  $('mSave').innerHTML = over ? saveHints(code.length-S.cap, Lm) : '';
+  $('mCmp').innerHTML=['hex6','hex3','leg'].map(e=>{
+    const nm={hex6:'6 位',hex3:'3 位',leg:'色码'}[e], on=S.enc===e, d=Lm[e]-Lm[S.enc];
+    return `<span style="${on?'color:var(--ember);font-weight:650':''}">${nm} <b>${Lm[e]}</b>${
+      on?'':` <span style="color:${d<0?'#4fae6b':'var(--ink-faint)'}">${d>0?'+':''}${d}</span>`}</span>`;
+  }).join(' · ');
+
+  renderStyles(); renderWraps(); renderCuts(); syncPicker(); tintRuns();
+}
+
+/* 超限时按省下的格数排序给建议 —— 不要让用户自己去猜哪里贵 */
+function saveHints(need, Lm){
+  const tips=[], bs=blocks();
+  if(S.enc!=='hex3' && Lm.hex3<Lm[S.enc]) tips.push([Lm[S.enc]-Lm.hex3,'换 3 位编码']);
+  if(S.enc!=='leg'  && Lm.leg <Lm[S.enc]) tips.push([Lm[S.enc]-Lm.leg,'换 16 色码（配色会失真）']);
+  let astralN=0, combN=0;
+  bs.forEach(b=>b.chars.forEach(c=>{
+    if(c.codePointAt(0)>0xFFFF) astralN++;
+    if(/[̀-ͯ]/.test(c)) combN++;
+  }));
+  if(astralN) tips.push([astralN,`${astralN} 个增补平面字符各占 2 格 —— 换成 BMP 花体（小型大写/音节文字/圆圈/西里尔）`]);
+  if(combN)   tips.push([combN,`${combN} 个组合符 —— 换成「预组合」那一档，1 格且贴合`]);
+  if(S.runs.length>1) tips.push([14,`合并段落，每段省 14 格`]);
+  if(S.wrap){const w=WRAPS[S.wrap];tips.push([w[1].length+w[2].length,`去掉包裹「${w[0]}」`]);}
+  tips.sort((a,b)=>b[0]-a[0]);
+  if(!tips.length) return '<span class="over">只能删字了。</span>';
+  return '<span class="over">还要省 '+need+' 格。</span> '+
+    tips.slice(0,3).map(t=>`省 <b>${t[0]}</b>：${t[1]}`).join(' ｜ ');
+}
+
+function renderRuns(){
+  const cs=cells(), st=[]; let i0=0;
+  // 每段第一个字符的实际颜色 —— 用来给序号上色，方便把行对应到预览里的位置
+  blocks().forEach(b=>{ st.push(cs[i0]?cs[i0].col:'#888'); i0+=b.chars.length; });
+  const w=WRAPS[S.wrap], off=w[1]?1:0;
+
+  $('runs').innerHTML=S.runs.map((r,i)=>{
+    const opts=STYLES.map((s2,j)=>`<option value="${j}"${r.st===j?' selected':''}>${s2.n}</option>`).join('');
+    return `<div class="rw${S.active===i?' active':''}" data-row="${i}">
+      <span class="no" style="color:${st[i+off]||'#888'}">${i+1}</span>
+      <input type="text" data-t="${i}" value="${esc(r.t)}" spellcheck="false" placeholder="这一段的文字">
+      <select data-st="${i}"><option value="">花体：无</option>${opts}</select>
+      <span class="fmts">${FKEYS.map(k=>
+        `<button class="fmtbtn${r.f[k]?' on':''}" data-f="${i}:${k}" title="&${k}">${k}</button>`).join('')}</span>
+      <button class="swatch" data-fix="${i}" title="定色"
+        style="background:${r.fix?r.fix:'transparent'};${r.fix?'border-color:var(--ember)':''}"></button>
+      ${r.fix?`<select data-fixc="${i}" style="flex:0 0 96px;width:96px">${Object.keys(LEGACY).map(k=>
+        `<option value="${LEGACY[k]}"${LEGACY[k]===r.fix?' selected':''}>&amp;${k} ${LEGNAME[k]}</option>`).join('')}</select>`:''}
+      <button class="mini" data-up="${i}"${i===0?' disabled':''} title="上移">↑</button>
+      <button class="mini" data-dn="${i}"${i===S.runs.length-1?' disabled':''} title="下移">↓</button>
+      <button class="mini del" data-del="${i}"${S.runs.length<2?' disabled':''} title="删除这一段">×</button>
+    </div>`;
+  }).join('');
+
+  const R=$('runs'), pick=i=>{S.active=i;
+    R.querySelectorAll('.rw').forEach(el=>el.classList.toggle('active',+el.dataset.row===i));
+    renderStyles(); renderSyms();};
+  R.querySelectorAll('.rw').forEach(el=>el.onmousedown=()=>pick(+el.dataset.row));
+  R.querySelectorAll('[data-t]').forEach(el=>{
+    el.oninput=()=>{S.runs[+el.dataset.t].t=el.value; render();};
+    el.onfocus=()=>pick(+el.dataset.t);});
+  R.querySelectorAll('[data-st]').forEach(el=>el.onchange=()=>{
+    const i=+el.dataset.st; S.runs[i].st = el.value===''?null:+el.value;
+    S.active=i; renderRuns(); renderStyles(); render();});
+  R.querySelectorAll('[data-f]').forEach(el=>el.onclick=()=>{
+    const [i,k]=el.dataset.f.split(':'); S.runs[+i].f[k]=S.runs[+i].f[k]?0:1;
+    S.active=+i; renderRuns(); render();});
+  R.querySelectorAll('[data-fix]').forEach(el=>el.onclick=()=>{
+    const i=+el.dataset.fix; S.runs[i].fix=S.runs[i].fix?null:'#ff5555';
+    S.active=i; renderRuns(); render();});
+  R.querySelectorAll('[data-fixc]').forEach(el=>el.onchange=()=>{
+    S.runs[+el.dataset.fixc].fix=el.value; renderRuns(); render();});
+  R.querySelectorAll('[data-up]').forEach(el=>el.onclick=()=>{
+    const i=+el.dataset.up; [S.runs[i-1],S.runs[i]]=[S.runs[i],S.runs[i-1]];
+    S.active=i-1; renderRuns(); renderStyles(); render();});
+  R.querySelectorAll('[data-dn]').forEach(el=>el.onclick=()=>{
+    const i=+el.dataset.dn; [S.runs[i+1],S.runs[i]]=[S.runs[i],S.runs[i+1]];
+    S.active=i+1; renderRuns(); renderStyles(); render();});
+  R.querySelectorAll('[data-del]').forEach(el=>el.onclick=()=>{
+    S.runs.splice(+el.dataset.del,1);
+    S.active=Math.max(0,Math.min(S.active,S.runs.length-1));
+    renderRuns(); renderStyles(); renderSyms(); render();});
+}
+function tintRuns(){
+  const cs=cells(); let i0=0; const st=[];
+  blocks().forEach(b=>{ st.push(cs[i0]?cs[i0].col:'#888'); i0+=b.chars.length; });
+  const off=WRAPS[S.wrap][1]?1:0;
+  $('runs').querySelectorAll('.rw').forEach(el=>{
+    const n=el.querySelector('.no'); if(n) n.style.color=st[+el.dataset.row+off]||'#888';});
+}
+function addRun(){
+  S.runs.push(newRun('')); S.active=S.runs.length-1;
+  renderRuns(); renderStyles(); renderSyms(); render();
+  const el=$('runs').querySelector(`[data-t="${S.active}"]`);
+  if(el) try{ el.focus({preventScroll:true}); }catch(e){ el.focus(); }
+}
+function renderStyles(){
+  const cur=S.runs[S.active], probe=(cur&&cur.t.replace(/[^A-Za-z0-9 ]/g,'').trim())||'Takodachi';
+  const sel=cur?cur.st:null;
+  const card=(i,name,out,badge)=>`<button class="style${sel===i?' active':''}" data-i="${i}">
+      <span class="nm">${name}${badge}</span><span class="pv">${esc(out)}</span></button>`;
+  const rank=n=>({e:0,d:1,n:2,i:3,p:4,c:5}[GAME[n]]??6);
+  const order=STYLES.map((_,i)=>i).sort((a,b)=>rank(STYLES[a].n)-rank(STYLES[b].n)||a-b);
+  $('styles').innerHTML = card(-1,`原样（段 ${S.active+1}）`,probe,'') +
+    order.map(i=>card(i,STYLES[i].n,apply(STYLES[i],probe),BADGE[GAME[STYLES[i].n]]||'')).join('');
+  $('styles').querySelectorAll('.style').forEach(b=>{
+    const i=+b.dataset.i;
+    b.onclick=()=>{
+      if(!S.runs[S.active]) return;
+      S.runs[S.active].st = (i<0 || S.runs[S.active].st===i) ? null : i;
+      HOVER=null; renderRuns(); render();
+    };
+    b.onmouseenter=()=>{ HOVER=i; paintPreview(); };
+    b.onmouseleave=()=>{ if(HOVER===i){ HOVER=null; paintPreview(); } };
+  });
+}
+function renderWraps(){
+  /* 成本必须是真实的代码长度差，不是字符数。包裹前后各自要开一对渐变标签，
+     所以实际开销远大于字符数本身（方块长：字符 14，实际 42）。 */
+  const keep=S.wrap;
+  const cost=WRAPS.map((_,i)=>{S.wrap=i;return codeOut().length;});
+  S.wrap=keep;
+  const base=cost[0];
+  $('wraps').innerHTML=WRAPS.map((w,i)=>{
+    const d=cost[i]-base;
+    return `<button class="wrapopt${S.wrap===i?' active':''}" data-w="${i}">
+      ${esc(w[1])}<span style="color:var(--ink-faint)">text</span>${esc(w[2])}
+      <small>${w[0]}${d?` · +${d} 格（含标签）`:''}</small></button>`;
+  }).join('');
+  $('wraps').querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>{
+    S.wrap=+b.dataset.w; render();});
+}
+function renderSyms(){
+  $('symcats').innerHTML=Object.keys(SYMS).map(k=>
+    `<button class="${k===S.cat?'on':''}" data-k="${esc(k)}">${k}</button>`).join('');
+  $('symcats').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.cat=b.dataset.k;renderSyms();});
+  $('symgrid').innerHTML=[...SYMS[S.cat]].map(c=>`<button data-c="${esc(c)}">${esc(c)}</button>`).join('');
+  $('symgrid').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    const r=S.runs[S.active]; if(!r) return;
+    const y=window.scrollY, el=$('runs').querySelector(`[data-t="${S.active}"]`);
+    const p = el && el.selectionStart!=null ? el.selectionStart : r.t.length;
+    r.t = r.t.slice(0,p)+b.dataset.c+r.t.slice(p);
+    if(el){ el.value=r.t;
+      try{ el.focus({preventScroll:true}); }catch(e){}
+      el.setSelectionRange(p+b.dataset.c.length,p+b.dataset.c.length); }
+    window.scrollTo(0,y);
+    renderStyles(); render();
+  });
+  $('symnote').innerHTML=SYMNOTE[S.cat]||`点一下插到<b>段 ${S.active+1}</b>的光标位置。`;
+}
+/* ── 取色器：HSV 方块 + 色相条，指针拖动 ── */
+function hex2hsv(hex){
+  const [r,g,b]=hex2rgb(hex).map(v=>v/255);
+  const mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn;
+  let hh=0;
+  if(d){ hh = mx===r ? ((g-b)/d+(g<b?6:0)) : mx===g ? (b-r)/d+2 : (r-g)/d+4; hh*=60; }
+  return {h:hh, s:mx?d/mx:0, v:mx};
+}
+function hsv2hex({h:hh,s,v}){
+  const c=v*s, x=c*(1-Math.abs((hh/60)%2-1)), m=v-c, i=Math.floor(hh/60)%6;
+  const t=[[c,x,0],[x,c,0],[0,c,x],[0,x,c],[x,0,c],[c,0,x]][i];
+  return rgb2hex(t.map(u=>(u+m)*255));
+}
+const STOPLABEL={2:['起','尾'],3:['起','中','尾'],4:['起','中1','中2','尾']};
+const STOPIDX={2:[0,3],3:[0,1,3],4:[0,1,2,3]};
+
+function renderStops(){
+  const idxs=STOPIDX[S.nStops], labels=STOPLABEL[S.nStops];
+  if(!idxs.includes(S.pk)) S.pk=idxs[0];
+  $('chips').innerHTML=idxs.map((si,n)=>
+    `<button class="chip${S.pk===si?' active':''}" data-pk="${si}">
+       <i style="background:${effective(S.stops[si])}"></i>${labels[n]}</button>`).join('');
+  $('chips').querySelectorAll('[data-pk]').forEach(b=>b.onclick=()=>{
+    S.pk=+b.dataset.pk; renderStops();});
+  syncPicker();
+  renderCuts();
+}
+function syncPicker(){
+  const hex=S.stops[S.pk], hsv=hex2hsv(hex);
+  $('sv').style.background=
+    `linear-gradient(to top, #000, rgba(0,0,0,0)), `+
+    `linear-gradient(to right, #fff, ${hsv2hex({h:hsv.h,s:1,v:1})})`;
+  $('svKnob').style.left=(hsv.s*100)+'%';
+  $('svKnob').style.top=((1-hsv.v)*100)+'%';
+  $('svKnob').style.background=hex;
+  $('hueKnob').style.top=(hsv.h/360*100)+'%';
+  $('pkHex').value=hex;
+  const eff=effective(hex);
+  $('pkEff').innerHTML = eff.toLowerCase()===hex.toLowerCase()
+    ? `实际 <span style="color:${eff}">${eff.toUpperCase()}</span>（无损）`
+    : `实际 <span style="color:${eff}">${eff.toUpperCase()}</span>`;
+  $('chips').querySelectorAll('[data-pk]').forEach(b=>{
+    b.querySelector('i').style.background=effective(S.stops[+b.dataset.pk]);});
+}
+function setStop(hex){ S.stops[S.pk]=hex; syncPicker(); render(); }
+function drag(el, onMove){
+  const go=e=>{
+    const r=el.getBoundingClientRect();
+    onMove(Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)),
+           Math.min(1,Math.max(0,(e.clientY-r.top )/r.height)));
+  };
+  el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);go(e);e.preventDefault();});
+  el.addEventListener('pointermove',e=>{if(el.hasPointerCapture(e.pointerId))go(e);});
+}
+drag($('sv'), (x,y)=>{const hsv=hex2hsv(S.stops[S.pk]);
+  setStop(hsv2hex({h:hsv.h,s:x,v:1-y}));});
+drag($('hue'),(x,y)=>{const hsv=hex2hsv(S.stops[S.pk]);
+  setStop(hsv2hex({h:y*360,s:hsv.s||1,v:hsv.v||1}));});
+$('pkHex').onchange=()=>{
+  let v=$('pkHex').value.trim(); if(!v.startsWith('#'))v='#'+v;
+  if(/^#[0-9a-f]{3}$/i.test(v)) v=exp3(v.slice(1));
+  if(/^#[0-9a-f]{6}$/i.test(v)) setStop(v.toLowerCase()); else syncPicker();
+};
+/* 内部断点滑块，2 色时不显示 */
+function renderCuts(){
+  const need=S.nStops-2, total=cells().length;
+  $('cutWrap').style.display=need?'':'none';
+  if(!need) return;
+  const b=bounds(total);
+  $('cutWrap').innerHTML=S.cuts.map((c,i)=>
+    `<label class="f">断点 ${i+1}（第 <b>${c}</b> 个字符之后）</label>
+     <input type="range" data-cut="${i}" min="1" max="${Math.max(1,total-1)}" value="${c}" style="width:100%">`).join('');
+  $('cutWrap').querySelectorAll('[data-cut]').forEach(el=>el.oninput=()=>{
+    const i=+el.dataset.cut; S.cuts[i]=+el.value;
+    for(let j=i+1;j<S.cuts.length;j++) S.cuts[j]=Math.max(S.cuts[j],S.cuts[i]+1);
+    for(let j=i-1;j>=0;j--)            S.cuts[j]=Math.min(S.cuts[j],S.cuts[i]-1);
+    render();});
+}
+
+/* ═══════════════ 配色预设 ═══════════════ */
+const GRADS=[
+ ['Takodachi（实测复刻）','#f37c52','#5555ff','#2f5b8b'],
+ ['Korone（实测复刻）','#a55d35','#5555ff','#2b547e'],
+ ["THAT'S NOT MY EAR（三段）",'#e56e94','#5555ff','#65008f'],
+ ['PEKO❤VIVI（实测复刻）','#5555ff','#5555ff','#ff55ff'],
+ ['cottagecrisps（实测复刻）','#bbddff','#cc77bb','#ccffff'],
+ ['熔岩','#ffe066','#ff8c1a','#c92a2a'],
+ ['深海','#a5f3ff','#2f80ed','#12306b'],
+ ['毒沼','#d8ff5c','#4caf50','#1b5e20'],
+ ['虚空','#c77dff','#7b2cbf','#240046'],
+ ['末影','#55ffff','#5555ff','#aa00aa'],
+ ['骨白','#ffffff','#c9c1d6','#6b5f7a'],
+ ['锈铁','#e0b088','#8b5a3c','#3b2418'],
+];
+
+/* ═══════════════ 事件 ═══════════════ */
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1300);}
+function copy(s,m){navigator.clipboard.writeText(s).then(()=>toast(m),()=>{
+  const ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);
+  ta.select();document.execCommand('copy');ta.remove();toast(m);});}
+
+$('addRun').onclick=addRun;
+$('dockToggle').onclick=()=>{
+  const c=$('dock').classList.toggle('collapsed');
+  $('dockToggle').textContent=c?'展开段落':'收起段落';
+  $('dockToggle').classList.toggle('on',c);};
+$('fontToggle').onclick=()=>{S.pixel=!S.pixel;
+  $('fontToggle').textContent='字形：'+(S.pixel?'像素':'系统');
+  $('fontToggle').classList.toggle('on',S.pixel);render();};
+$('loreToggle').onclick=()=>{S.lore=!S.lore;$('loreToggle').classList.toggle('on',S.lore);render();};
+
+function setMode(n){S.nStops=n; S.cuts=[];
+  [2,3,4].forEach(k=>$('mode'+k).classList.toggle('on',k===n));
+  renderStops();render();}
+$('mode2').onclick=()=>setMode(2);
+$('mode3').onclick=()=>setMode(3);
+$('mode4').onclick=()=>setMode(4);
+$('cap').onchange=e=>{S.cap=Math.max(1,+e.target.value||50);render();};
+function setEnc(e){S.enc=e;
+  $('enc3').classList.toggle('on',e==='hex3');
+  $('enc6').classList.toggle('on',e==='hex6');
+  $('encL').classList.toggle('on',e==='leg');
+  renderStops();render();}
+$('enc3').onclick=()=>setEnc('hex3');
+$('enc6').onclick=()=>setEnc('hex6');
+$('encL').onclick=()=>setEnc('leg');
+
+$('presetGrad').innerHTML='<option value="">— 配色预设 —</option>'+
+  GRADS.map((g,i)=>`<option value="${i}">${g[0]}</option>`).join('');
+$('presetGrad').onchange=e=>{
+  if(e.target.value==='')return;
+  const g=GRADS[+e.target.value];
+  S.stops=[g[1], g[2], lerp(g[2],g[3],0.5), g[3]];
+  renderStops(); render();};
+
+$('bCopy').onclick=()=>copy(codeOut(),'代码已复制');
+$('bCopyPlain').onclick=()=>copy(plainText(),'文字已复制');
+
+function showProbe(which){
+  const box=$('probeOut'), body = which==='e' ? probeEmoji() : probeStyles();
+  const same = box.dataset.kind===which && box.style.display==='block';
+  if(same){ box.style.display='none'; box.dataset.kind=''; }
+  else{
+    box.style.display='block'; box.dataset.kind=which; box.textContent=body;
+    copy(body, `已复制（${body.length} 字符，${body.split('\n').length} 行）— 贴进成书后截图`);
+  }
+  const open=box.style.display==='block';
+  $('bProbe').classList.toggle('on', open && box.dataset.kind==='s');
+  $('bProbeE').classList.toggle('on', open && box.dataset.kind==='e');
+}
+$('bProbe').onclick=()=>showProbe('s');
+$('bProbeE').onclick=()=>showProbe('e');
+
+function snap(){return JSON.parse(JSON.stringify({runs:S.runs,wrap:S.wrap,
+  nStops:S.nStops,cuts:S.cuts,stops:S.stops,enc:S.enc}));}
+function renderPresets(){
+  if(!S.presets.length){$('presetList').textContent='还没有预设。';return;}
+  $('presetList').innerHTML=S.presets.map((p,i)=>{
+    const label=(p.runs||[]).map(r=>r.t).join('') || '(空)';
+    return `<div class="row" style="margin-bottom:5px">
+      <span style="font-family:ui-monospace,Consolas,monospace;color:var(--ink-dim)">${esc(label)}</span>
+      <span class="grow"></span>
+      <button data-load="${i}">载入</button><button data-del="${i}">删</button></div>`;
+  }).join('');
+  $('presetList').querySelectorAll('[data-load]').forEach(b=>b.onclick=()=>{
+    Object.assign(S,JSON.parse(JSON.stringify(S.presets[+b.dataset.load])));
+    if(!S.runs||!S.runs.length) S.runs=[newRun('')];
+    S.runs.forEach(r=>{r.f=Object.assign({l:0,o:0,n:0,m:0,k:0},r.f||{});
+                       if(r.fix===undefined)r.fix=null;});
+    S.active=0;
+    if(!S.nStops) S.nStops=2; if(!S.stops||S.stops.length<4) S.stops=['#f37c52','#8860c6','#5555ff','#2f5b8b'];
+    [2,3,4].forEach(k=>$('mode'+k).classList.toggle('on',k===S.nStops));
+    setEnc(S.enc||'hex3'); renderRuns(); renderStops(); render();});
+  $('presetList').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    S.presets.splice(+b.dataset.del,1);renderPresets();});
+}
+$('bSave').onclick=()=>{S.presets.push(snap());renderPresets();toast('已存为预设');};
+$('bExport').onclick=()=>{const b=$('ioBox');b.style.display='';b.value=JSON.stringify(S.presets);
+  copy(b.value,'JSON 已复制 — 存进 txt 文件');};
+$('bImport').onclick=()=>{const b=$('ioBox');
+  if(b.style.display==='none'||!b.value.trim()){b.style.display='';b.value='';b.focus();
+    toast('把 JSON 贴进下面再点一次');return;}
+  try{const a=JSON.parse(b.value);
+    if(Array.isArray(a)){S.presets=a;renderPresets();toast('导入 '+a.length+' 条');}}
+  catch(e){toast('JSON 格式不对');}};
+
+/* &k 混淆：MC 里是不断跳字的，预览也跳 */
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+  setInterval(()=>{
+    document.querySelectorAll('#pv .k').forEach(el=>{
+      el.textContent=KPOOL[Math.floor(Math.random()*KPOOL.length)];});
+  },80);
+}
+
+
+/* ═══════════════ 截图逆推（7a）═══════════════
+   1 探测整数缩放倍率  2 分列切字  3 每字取最亮像素（避开 25% 阴影）
+   4 暴力扫描断点，拟合 2/3/4 色标，报吻合度                        */
+/* 缩放探测：用水平同色游程长度的可整除性，跟裁切相位无关 */
+function detectScale(d,w,hh){
+  const runs=[];
+  for(let y=0;y<hh;y++){
+    let len=1;
+    for(let x=1;x<w;x++){
+      const i=(y*w+x)*4, j=(y*w+x-1)*4;
+      if(d[i]===d[j]&&d[i+1]===d[j+1]&&d[i+2]===d[j+2]) len++;
+      else { if(x-len>0) runs.push(len); len=1; }   // 丢掉贴边的半截游程
+    }
+  }
+  if(runs.length<20) return 1;
+  for(let s=6;s>=2;s--){
+    const ok=runs.filter(r=>r%s===0).length/runs.length;
+    if(ok>=0.95) return s;
+  }
+  return 1;
+}
+/* crop = {x,y,w,h}（原图像素坐标）。给了就只在这块区域里取色。
+   自动分行在有 GUI 背景的完整截图上不可靠（tooltip 后面压着铁砧界面，
+   几乎每行都有非背景像素），所以框选是主路径，自动分行只是简单图的兜底。 */
+function extractGlyphs(img, band, crop){
+  const c=document.createElement('canvas');
+  c.width=img.width; c.height=img.height;
+  const g=c.getContext('2d',{willReadFrequently:true});
+  g.drawImage(img,0,0);
+  let {data,width:w,height:hh}=g.getImageData(0,0,c.width,c.height);
+  let ox=0, oy=0;
+  if(crop && crop.w>2 && crop.h>2){
+    const x0=Math.max(0,Math.min(w-1,crop.x|0)), y0=Math.max(0,Math.min(hh-1,crop.y|0));
+    const cw=Math.min(crop.w|0, w-x0), ch=Math.min(crop.h|0, hh-y0);
+    const nd=new Uint8ClampedArray(cw*ch*4);
+    for(let y=0;y<ch;y++)
+      for(let x=0;x<cw;x++){
+        const s=((y0+y)*w+x0+x)*4, d=(y*cw+x)*4;
+        nd[d]=data[s]; nd[d+1]=data[s+1]; nd[d+2]=data[s+2]; nd[d+3]=data[s+3];
+      }
+    data=nd; w=cw; hh=ch; ox=x0; oy=y0;
+  }
+  /* 缩放倍率只用来告诉用户这张图干不干净 —— 逐列取最亮色本身是缩放无关的，
+     所以不降采样，少一个失败点。 */
+  const scale=detectScale(data,w,hh);
+  const cnt={};
+  for(let i=0;i<data.length;i+=4){
+    const k=data[i]+','+data[i+1]+','+data[i+2];
+    cnt[k]=(cnt[k]||0)+1;
+  }
+  let bg=[0,0,0], mx=0;
+  for(const k in cnt) if(cnt[k]>mx){mx=cnt[k];bg=k.split(',').map(Number);}
+  const far=(r,g_,b)=>Math.abs(r-bg[0])+Math.abs(g_-bg[1])+Math.abs(b-bg[2])>60;
+  /* chrome 剔除：tooltip 边框、聊天底条这类界面元素是很长的水平同色游程；
+     字母笔画不可能连续横跨十几个像素。不剔的话边框会被当成第一个字符，端点全错。 */
+  const chrome=new Uint8Array(w*hh);
+  const RUNMAX=Math.max(14, 14*scale);
+  for(let y=0;y<hh;y++){
+    let a=0;
+    for(let x=1;x<=w;x++){
+      const i=(y*w+x)*4, j=(y*w+x-1)*4;
+      const same = x<w && data[i]===data[j] && data[i+1]===data[j+1] && data[i+2]===data[j+2];
+      if(!same){
+        if(x-a>RUNMAX) for(let k=a;k<x;k++) chrome[y*w+k]=1;
+        a=x;
+      }
+    }
+  }
+  /* 竖直方向同理：tooltip 左右的 2px 竖边框贯穿整图，横向游程很短抓不到，
+     不剔的话每一行都有恒定的墨迹基线，文字行永远切不开。
+     阈值取整图高度的 40% —— 边框贯穿全高，字母竖笔画再高也远不到。 */
+  const VMAX=Math.max(24, hh*0.4);
+  for(let x=0;x<w;x++){
+    let a=0;
+    for(let y=1;y<=hh;y++){
+      const i=(y*w+x)*4, j=((y-1)*w+x)*4;
+      const same = y<hh && data[i]===data[j] && data[i+1]===data[j+1] && data[i+2]===data[j+2];
+      if(!same){
+        if(y-a>VMAX) for(let k=a;k<y;k++) chrome[k*w+x]=1;
+        a=y;
+      }
+    }
+  }
+  /* 文字行检测。完整 tooltip 截图有十几行（名字 + 附魔 + lore），
+     不分行的话每一行都会被当成色阶，一张图能取出上百个。默认取最上面那行，
+     因为物品名在 tooltip 顶部；多行时把行数报给界面让用户选。 */
+  const rowInk=[];
+  for(let y=0;y<hh;y++){
+    let n=0;
+    for(let x=0;x<w;x++){
+      if(chrome[y*w+x]) continue;
+      const i=(y*w+x)*4;
+      if(far(data[i],data[i+1],data[i+2])) n++;
+    }
+    rowInk.push(n);
+  }
+  const bands=[]; let bandCur=null;
+  for(let y=0;y<hh;y++){
+    if(rowInk[y]>0){ if(!bandCur) bandCur={y0:y,y1:y}; else bandCur.y1=y; }
+    else if(bandCur){ if(bandCur.y1-bandCur.y0>=2) bands.push(bandCur); bandCur=null; }
+  }
+  if(bandCur && bandCur.y1-bandCur.y0>=2) bands.push(bandCur);
+  if(!bands.length) bands.push({y0:0,y1:hh-1});
+  /* 选哪一行？"最上面"不可靠 —— tooltip 顶部常有边框残留。
+     我们找的是渐变，所以挑颜色种类最多的那一行：lore 行基本单色，
+     渐变名字行有十几种颜色。这个判据直接对准目标。 */
+  bands.forEach(bd=>{
+    const seen=new Set();
+    for(let y=bd.y0;y<=bd.y1;y++) for(let x=0;x<w;x++){
+      if(chrome[y*w+x]) continue;
+      const i=(y*w+x)*4;
+      if(far(data[i],data[i+1],data[i+2]))
+        seen.add((data[i]>>2)+','+(data[i+1]>>2)+','+(data[i+2]>>2));
+    }
+    bd.variety=seen.size;
+  });
+  const auto=bands.reduce((a,b,i)=>bands[a].variety>=b.variety?a:i,0);
+  const bi = band==null ? auto : Math.max(0,Math.min(bands.length-1, band|0));
+  const {y0,y1}=bands[bi];
+  const bandH=y1-y0+1;
+
+  /* 每列取最亮的墨色（阴影是 25% 亮度，必然更暗），并记录墨迹占的高度。
+     tooltip 竖边框贯穿整行高 —— 用高度比排除，不然会被当成字符。 */
+  const best=[], frac=[];
+  for(let x=0;x<w;x++){
+    let b=null,bl=-1,n=0;
+    for(let y=y0;y<=y1;y++){
+      if(chrome[y*w+x]) continue;
+      const i=(y*w+x)*4, r=data[i],g_=data[i+1],bb=data[i+2];
+      if(!far(r,g_,bb)) continue;
+      n++;
+      const l=r+g_+bb;
+      if(l>bl){bl=l;b=[r,g_,bb];}
+    }
+    best.push(b); frac.push(n/bandH);
+  }
+  /* 按颜色变化切分，而不是按空列切分 —— 渐变里每个字符一个色带，
+     所以笔画粘连的相邻字符照样能分开。 */
+  const near=(a,b)=>a&&b&&Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2])<=12;
+  const glyphs=[], spans=[];
+  let cur=null, curX=0;
+  for(let x=0;x<w;x++){
+    const b=best[x];
+    if(!b || frac[x]>0.8){ if(cur){glyphs.push(rgb2hex(cur));spans.push([curX,x-1]);cur=null;} continue; }
+    if(cur && near(cur,b)) continue;
+    if(cur){ glyphs.push(rgb2hex(cur)); spans.push([curX,x-1]); }
+    cur=b; curX=x;
+  }
+  if(cur){ glyphs.push(rgb2hex(cur)); spans.push([curX,w-1]); }
+  /* MC 的文字阴影正好是字色的 25%，画在 +1,+1 偏移处，所以字间那一列取到的
+     最亮色就是阴影本身。判据：存在另一个候选色约等于我的 4 倍 → 我是阴影。 */
+  const rgbs=glyphs.map(hex2rgb);
+  const isShadow=rgbs.map(a=>rgbs.some(b=>
+    Math.abs(b[0]-a[0]*4)+Math.abs(b[1]-a[1]*4)+Math.abs(b[2]-a[2]*4)<=20
+    && (b[0]+b[1]+b[2])>(a[0]+a[1]+a[2])+30));
+  let keep=glyphs.filter((_,i)=>!isShadow[i]);
+  let keepSpans=spans.filter((_,i)=>!isShadow[i]);
+  const dropped=glyphs.length-keep.length;
+  /* 端点剪裁：渐变的相邻色差是平滑的，界面杂色（右侧边框、滚动条）会是个巨大跳变。
+     用中位步长做基准，从两端往内剪掉离群的，最多各剪 3 个。 */
+  let trimmed=0;
+  const dist=(a,b)=>{const A=hex2rgb(a),B=hex2rgb(b);
+    return Math.abs(A[0]-B[0])+Math.abs(A[1]-B[1])+Math.abs(A[2]-B[2]);};
+  if(keep.length>=6){
+    const steps=keep.slice(1).map((c,i)=>dist(keep[i],c)).sort((a,b)=>a-b);
+    const med=steps[steps.length>>1]||1;
+    const lim=Math.max(80, med*3.5);
+    for(let n=0;n<3 && keep.length>4 && dist(keep[0],keep[1])>lim;n++){
+      keep=keep.slice(1); keepSpans=keepSpans.slice(1); trimmed++; }
+    for(let n=0;n<3 && keep.length>4 && dist(keep[keep.length-1],keep[keep.length-2])>lim;n++){
+      keep=keep.slice(0,-1); keepSpans=keepSpans.slice(0,-1); trimmed++; }
+  }
+  return {scale, w, hh, ox, oy, bg:rgb2hex(bg), glyphs:keep, spans:keepSpans,
+          dropped, trimmed, bands, band:bi, canvas:c};
+}
+/* 用 n 个色标拟合一串颜色，返回 {stops,cuts,err} */
+function fitStops(cols,n){
+  const N=cols.length;
+  if(N<2) return null;
+  const rgb=cols.map(hex2rgb);
+  const err=(bnd,st)=>{
+    let e=0;
+    for(let s=0;s<st.length-1;s++){
+      const a=bnd[s], z=bnd[s+1], len=z-a;
+      for(let k=0;k<len;k++){
+        const t=len===1?0:k/(len-1);
+        const p=[0,1,2].map(ch=>st[s][ch]+(st[s+1][ch]-st[s][ch])*t);
+        const q=rgb[a+k];
+        e+=Math.abs(p[0]-q[0])+Math.abs(p[1]-q[1])+Math.abs(p[2]-q[2]);
+      }
+    }
+    return e/(N*3);
+  };
+  const build=bnd=>bnd.map(i=>rgb[Math.min(N-1,i===N?N-1:i)]);
+  let best=null;
+  const inner=n-2;
+  const scan=(prefix,from)=>{
+    if(prefix.length===inner){
+      const bnd=[0,...prefix,N];
+      const st=[rgb[0], ...prefix.map(i=>rgb[i]), rgb[N-1]];
+      const e=err(bnd,st);
+      if(!best||e<best.err) best={err:e, cuts:prefix.slice(),
+        stops:st.map(v=>rgb2hex(v))};
+      return;
+    }
+    for(let i=from;i<=N-1-(inner-prefix.length);i++) scan([...prefix,i],i+1);
+  };
+  if(inner===0){ const bnd=[0,N], st=[rgb[0],rgb[N-1]];
+    best={err:err(bnd,st),cuts:[],stops:st.map(v=>rgb2hex(v))}; }
+  else scan([],1);
+  if(best) best.match = Math.max(0, 100 - best.err/255*100);
+  return best;
+}
+let SHOT=null, ZOOM=2;
+function reExtract(){
+  if(!SHOT||!SHOT.img) return;
+  S.shotEdit=null;                       // 换了取色区域，之前的手编代码不再对应
+  renderShot(extractGlyphs(SHOT.img, null, S.shotCrop), SHOT.img);
+}
+function drawSource(){
+  if(!SHOT||!SHOT.img||!$('srcCanvas')) return;
+  const {img,w,hh}=SHOT;
+  const c=$('srcCanvas');
+  c.width=w*ZOOM; c.height=hh*ZOOM;
+  const g=c.getContext('2d');
+  g.imageSmoothingEnabled=false;
+  g.drawImage(img,0,0,w*ZOOM,hh*ZOOM);
+  // 色带：按识别到的列区间对齐画在图下面，方便逐个核对
+  const cr=S.shotCrop, ox=cr?cr.x:0, cw=cr?cr.w:w;
+  $('swStrip').innerHTML=SHOT.spans.map((sp,i)=>
+    `<i style="left:${(ox+sp[0])/w*100}%;width:${(sp[1]-sp[0]+1)/w*100}%;
+       background:${SHOT.glyphs[i]}" title="${SHOT.glyphs[i].toUpperCase()}"></i>`).join('');
+  $('swStrip').style.width=(w*ZOOM)+'px';
+  const R=$('selRect');
+  if(R){
+    if(cr){ R.style.display='block';
+      R.style.left=(cr.x*ZOOM)+'px'; R.style.top=(cr.y*ZOOM)+'px';
+      R.style.width=(cr.w*ZOOM)+'px'; R.style.height=(cr.h*ZOOM)+'px'; }
+    else R.style.display='none';
+  }
+  if($('selInfo')) $('selInfo').textContent = cr
+    ? `已框选 ${cr.w}×${cr.h}px（原图 ${w}×${SHOT.hh}）` : '当前用整张图';
+  [1,2,4].forEach(z=>$('z'+z).classList.toggle('on',ZOOM===z));
+}
+
+/* 逆推面板的代码生成：颜色来自拟合，文字和花体由用户填（工具认不出字符）。
+   fit.cuts 的单位是「有墨字符」下标（空格不产生色阶），所以要跳过空格换算。 */
+function shotCode(){
+  if(!SHOT||!SHOT.fits) return '';
+  const o=SHOT.fits.find(x=>x.n===S.shotFit)||SHOT.fits[0];
+  if(!o) return '';
+  const f=o.fit;
+  const chars=[...apply(S.shotStyle==null?null:STYLES[S.shotStyle], S.shotText)];
+  const n=chars.length;
+  if(!n) return '';
+  // 有墨下标 → 字符下标
+  const map=[]; chars.forEach((c,i)=>{ if(c.trim()) map.push(i); });
+  const cuts=f.cuts.map(c=>map[Math.min(map.length-1,c)]??Math.round(c*n/SHOT.glyphs.length))
+                   .filter(v=>v>=1&&v<=n-1);
+  const bnd=[0,...cuts,n], st=f.stops;
+  let out='', pend=null;
+  for(let s=0;s<bnd.length-1 && s<st.length-1;s++){
+    const a=bnd[s], z=bnd[s+1];
+    if(z<=a) continue;
+    const fc=fmtCode(S.shotFmt);
+    if(pend!==null) out+=tag(st[s],'<>'); else out+=tag(st[s],'>');
+    out+=fc+chars.slice(a,z).join(''); pend=st[s+1];
+  }
+  if(pend!==null) out+=tag(pend,'<');
+  return out;
+}
+
+/* ═══════════ 代码解析器 ═══════════
+   把 {#xxx>} / {#xxx<>} / {#xxx<} / {#&x>} / &l&o&n&m&k / &r / &0-&f 解回逐字色和格式。
+   有了它，手工编辑过的代码也能如实预览 —— 否则你加了 &l 预览不变，对比就没意义了。 */
+const TAG_RE=/^\{#(?:&([0-9a-fA-F])|([0-9a-fA-F]{6})|([0-9a-fA-F]{3}))(<>|>|<)\}/;
+function parseCode(code){
+  const out=[]; let i=0;
+  let fmt={l:0,o:0,n:0,m:0,k:0}, open=null, solid=null, buf=[];
+  const flush=close=>{
+    if(!buf.length) return;
+    if(open){
+      const cols=rampN(buf.length, open, close||open);
+      buf.forEach((b,k)=>out.push({ch:b.ch, col:cols[k], f:b.f}));
+    } else buf.forEach(b=>out.push({ch:b.ch, col:solid||'#ffffff', f:b.f}));
+    buf=[];
+  };
+  while(i<code.length){
+    const m=TAG_RE.exec(code.slice(i));
+    if(m){
+      const col = m[1] ? LEGACY[m[1].toLowerCase()]
+                : m[2] ? '#'+m[2].toLowerCase()
+                       : exp3(m[3].toLowerCase());
+      const suf=m[4];
+      if(suf==='>'){ flush(null); open=col; solid=null; }
+      else if(suf==='<>'){ flush(col); open=col; solid=null; }
+      else { flush(col); open=null; }
+      i+=m[0].length; continue;
+    }
+    if(code[i]==='&' && i+1<code.length){
+      const c=code[i+1].toLowerCase();
+      if('lonmk'.includes(c)){ fmt={...fmt,[c]:1}; i+=2; continue; }
+      if(c==='r'){ fmt={l:0,o:0,n:0,m:0,k:0}; flush(null); open=null; solid=null; i+=2; continue; }
+      if(LEGACY[c]!==undefined){ flush(null); open=null; solid=LEGACY[c];
+        fmt={l:0,o:0,n:0,m:0,k:0}; i+=2; continue; }
+    }
+    const cp=String.fromCodePoint(code.codePointAt(i));
+    buf.push({ch:cp, f:fmt}); i+=cp.length;
+  }
+  flush(null);
+  return out;
+}
+
+/* 逆推侧的逐字色：和 shotCode 用同一套断点换算，保证预览和代码一致 */
+function shotCells(){
+  if(!SHOT||!SHOT.fits) return [];
+  const o=SHOT.fits.find(x=>x.n===S.shotFit)||SHOT.fits[0];
+  if(!o) return [];
+  const f=o.fit;
+  const chars=[...apply(S.shotStyle==null?null:STYLES[S.shotStyle], S.shotText)];
+  const n=chars.length; if(!n) return [];
+  const map=[]; chars.forEach((c,i)=>{ if(c.trim()) map.push(i); });
+  const cuts=f.cuts.map(c=>map[Math.min(map.length-1,c)]??Math.round(c*n/SHOT.glyphs.length))
+                   .filter(v=>v>=1&&v<=n-1);
+  const bnd=[0,...cuts,n], st=f.stops.map(effective), cols=[];
+  for(let s=0;s<bnd.length-1 && s<st.length-1;s++)
+    cols.push(...rampN(bnd[s+1]-bnd[s], st[s], st[s+1]));
+  return chars.map((c,i)=>({ch:c, col:cols[i]||st[st.length-1]}));
+}
+/* 当前生效的代码：手工编辑过就用编辑后的，否则用生成的 */
+const liveCode = () => (S.shotEdit!==null ? S.shotEdit : shotCode());
+function renderRepro(){
+  const box=$('repro'); if(!box) return;
+  const code=liveCode();
+  const cs = code ? parseCode(code) : [];
+  box.innerHTML = cs.length ? cs.map(o=>{
+    const f=o.f||{}, sh=rgb2hex(hex2rgb(o.col).map(v=>v*0.25)), d=[];
+    if(f.l)d.push('font-weight:700');
+    if(f.o)d.push('font-style:italic');
+    const dec=[]; if(f.n)dec.push('underline'); if(f.m)dec.push('line-through');
+    if(dec.length)d.push('text-decoration:'+dec.join(' '));
+    return `<span class="mcfont${f.k?' k':''}" style="color:${o.col};text-shadow:.09em .09em 0 ${sh};${d.join(';')}">${
+      o.ch===' '?'&nbsp;':esc(o.ch)}</span>`;
+  }).join('') : '<span style="font-size:11px;color:var(--ink-faint)">—</span>';
+}
+function renderShotStyles(){
+  const box=$('shotSt'); if(!box) return;
+  const src=S.shotText||'Takodachi';
+  box.innerHTML=`<button class="stchip${S.shotStyle===null?' on':''}" data-ss="-1">${
+      esc(src)}<small>原样</small></button>`+
+    STYLES.map((st,i)=>`<button class="stchip${S.shotStyle===i?' on':''}" data-ss="${i}">${
+      esc(apply(st,src))}<small>${st.n}</small></button>`).join('');
+  box.querySelectorAll('[data-ss]').forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.ss; S.shotStyle = i<0?null:i;
+    renderShotStyles(); renderShotCode(); renderRepro();});
+}
+function renderShotCode(){
+  const box=$('shotCode'); if(!box) return;
+  const gen=shotCode();
+  if(S.shotEdit===null) box.value=gen;
+  const code=box.value;
+  const over=code.length>S.cap, dirty=S.shotEdit!==null;
+  $('shotMeter').innerHTML = code
+    ? `<span>长度 <b class="${over?'over':''}">${code.length}</b> / ${S.cap}
+         <span class="${over?'over':'ok'}">${over?'超出 '+(code.length-S.cap):'放得下'}</span></span>
+       ${dirty?`<span style="color:var(--mc-gold)">已手动编辑 —— 改文字或配色不会覆盖你的修改，要回到自动生成请点「重新生成」</span>`:''}`
+    : `<span>在上面填入文字后这里会生成代码。</span>`;
+  const b=$('shotCopy'); if(b) b.disabled=!code;
+  renderRepro();
+}
+
+function renderShot(res, img){
+  const {glyphs,scale,bg}=res;
+  SHOT={img: img||(SHOT&&SHOT.img), w:res.w, hh:res.hh,
+        glyphs:res.glyphs, spans:res.spans, fits:null};
+  if(!glyphs.length){
+    $('shotOut').innerHTML='<div class="note over">没找到文字像素 —— 背景可能和文字太接近，换一张对比明显的截图。</div>';
+    return;
+  }
+  const fits=[2,3,4].map(n=>({n, fit:fitStops(glyphs,n)})).filter(o=>o.fit);
+  /* 「最佳」= 最高分容差内的最小色标数，不是单纯取最高分 ——
+     多加一个色标几乎总能微涨，但每个要多 7 格。
+     容差 3% 的依据：四张真实截图里，真三色的提升是 12.6% 和 9.1%，
+     真两色的只有 1.8% 和 0.9%，两个区间之间空隙很宽，3 落在中间。 */
+  const top=Math.max(...fits.map(o=>o.fit.match));
+  const bestN=(fits.find(o=>o.fit.match>=top-3)||fits[0]).n;
+  SHOT.fits=fits;
+  $('shotOut').innerHTML=`
+    <div class="zoombar">
+      <span>你粘贴的原图</span>
+      <button id="z1">1×</button><button id="z2">2×</button><button id="z4">4×</button>
+      <span>${res.w}×${res.hh}px</span>
+      <span class="grow" style="flex:1"></span>
+      <button id="reshot">换一张</button>
+    </div>
+    <div class="srcwrap"><canvas id="srcCanvas"></canvas>
+      <div class="selrect" id="selRect"></div>
+      <div class="swstrip" id="swStrip"></div></div>
+    <div class="zoombar" style="margin-top:4px">
+      <span><b>在图上拖一个框</b>选出要取色的那一行</span>
+      <button id="selAll">用整张图</button>
+      <span id="selInfo"></span>
+    </div>
+    <div class="note">整张 tooltip 截图里名字、附魔、lore 全是文字，自动分行在有 GUI 背景时不可靠 —— 框选最准。
+      色带是识别出的每个色阶，按列位置对齐在图下面，可以逐个核对有没有错切。</div>
+    <div class="zoombar" style="margin-bottom:2px"><span>复刻效果（下面填了文字才有）</span></div>
+    <div class="repro" id="repro"></div>
+    <div class="note" style="margin-top:10px">
+      缩放倍率 <b>${scale}×</b>
+      ｜ 背景 <span style="color:${bg}">${bg.toUpperCase()}</span>
+      ｜ 取到 <b>${glyphs.length}</b> 个色阶${
+        res.dropped||res.trimmed?`（剔除 ${res.dropped} 阴影${res.trimmed?` + ${res.trimmed} 端点杂色`:''}）`:''}
+    </div>
+    <div style="margin-top:8px">${fits.map(({n,fit})=>`
+      <div class="fitrow" data-row="${n}">
+        <b style="min-width:34px">${n} 色</b>
+        ${n===bestN?'<span class="rec">推荐</span>':''}
+        <span class="bar">${fit.stops.map(s2=>`<div style="background:${s2}"></div>`).join('')}</span>
+        <span style="font-family:ui-monospace,Consolas,monospace;font-size:11px">
+          ${fit.stops.map(s2=>s2.slice(1).toUpperCase()).join(' → ')}</span>
+        <b style="color:${fit.match>=97?'#4fae6b':fit.match>=90?'var(--mc-gold)':'var(--mc-red)'}">
+          ${fit.match.toFixed(1)}%</b>
+        <button data-pick="${n}">选这个</button>
+      </div>`).join('')}</div>
+    <div class="panel" style="margin-top:12px;background:var(--void)">
+      <label class="f">文字内容 —— 逆推认不出字符，这里手填（我看截图告诉你，或你自己照着打）</label>
+      <input type="text" id="shotTxt" spellcheck="false"
+        value="${esc(S.shotText)}" placeholder="例：squishy 🐱 zeta">
+      <div class="row" style="margin-top:8px">
+        <label class="f" style="margin:0">整段格式</label>
+        ${FKEYS.map(k=>`<button class="fmtbtn${S.shotFmt[k]?' on':''}" data-sf="${k}">&amp;${k}</button>`).join('')}
+      </div>
+      <label class="f" style="margin-top:9px">花体（每个都直接显示效果，点一下就换）</label>
+      <div class="stchips" id="shotSt"></div>
+      <label class="f" style="margin-top:9px">完整代码 —— <b>可以直接改</b>，上面的复刻预览会跟着变</label>
+      <textarea id="shotCode" spellcheck="false"
+        style="font-family:ui-monospace,Consolas,monospace;font-size:13px;min-height:52px"></textarea>
+      <div class="meter" id="shotMeter"></div>
+      <div class="row" style="margin-top:9px">
+        <button class="primary" id="shotCopy">复制完整代码</button>
+        <button id="shotRegen">重新生成</button>
+        <button id="shotApply">套用配色去创作</button>
+      </div>
+    </div>
+    ${fits[0].fit.match<90&&bestN&&Math.max(...fits.map(o=>o.fit.match))<90?`<div class="note" style="color:var(--mc-gold)">
+      最佳吻合仍低于 90% —— 这条可能不是单纯的 N 色渐变，而是用了<b>定色段</b>或<b>镜像结构</b>。
+      这种要手动拆段，逆推只能给你逐字色值参考。</div>`:''}
+    <div class="hexlist" style="margin-top:8px">逐字实测：${glyphs.map(c2=>
+      `<span style="border-color:${c2}">${c2.slice(1).toUpperCase()}</span>`).join(' ')}</div>
+    <div class="note">还没做：识别文字内容、花体种类、emoji —— 那需要服务器资源包的字体图集。</div>`;
+  [1,2,4].forEach(z=>$('z'+z).onclick=()=>{ZOOM=z;drawSource();});
+  $('selAll').onclick=()=>{S.shotCrop=null; reExtract();};
+  const cv=$('srcCanvas');
+  if(cv){
+    let a=null;
+    const pt=e=>{const r=cv.getBoundingClientRect();
+      return {x:Math.round((e.clientX-r.left)/ZOOM), y:Math.round((e.clientY-r.top)/ZOOM)};};
+    cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);a=pt(e);e.preventDefault();});
+    cv.addEventListener('pointermove',e=>{
+      if(!a) return;
+      const b=pt(e), R=$('selRect');
+      R.style.display='block';
+      R.style.left=(Math.min(a.x,b.x)*ZOOM)+'px'; R.style.top=(Math.min(a.y,b.y)*ZOOM)+'px';
+      R.style.width=(Math.abs(b.x-a.x)*ZOOM)+'px'; R.style.height=(Math.abs(b.y-a.y)*ZOOM)+'px';
+    });
+    cv.addEventListener('pointerup',e=>{
+      if(!a) return;
+      const b=pt(e);
+      const cr={x:Math.min(a.x,b.x), y:Math.min(a.y,b.y),
+                w:Math.abs(b.x-a.x), h:Math.abs(b.y-a.y)};
+      a=null;
+      if(cr.w>2 && cr.h>2){ S.shotCrop=cr; reExtract(); } else drawSource();
+    });
+  }
+  $('reshot').onclick=()=>$('file').click();
+  if(!S.shotFit || !fits.some(o=>o.n===S.shotFit)) S.shotFit=bestN;
+  /* 「推荐」和「已选」是两件事 —— 之前共用一个 class，选了别的之后旧的橙边不消失。 */
+  const markPick=()=>$('shotOut').querySelectorAll('[data-row]').forEach(el=>{
+    const on = +el.dataset.row===S.shotFit;
+    el.classList.toggle('sel', on);
+    const b=el.querySelector('[data-pick]');
+    if(b){ b.textContent = on?'✓ 已选':'选这个'; b.classList.toggle('on',on); }
+  });
+  $('shotOut').querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{
+    S.shotFit=+b.dataset.pick; markPick(); renderShotCode();});
+  markPick();
+
+  renderShotStyles();
+  $('shotTxt').oninput=()=>{S.shotText=$('shotTxt').value;
+    renderShotStyles(); renderShotCode();};
+  $('shotOut').querySelectorAll('[data-sf]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.sf; S.shotFmt[k]=S.shotFmt[k]?0:1;
+    b.classList.toggle('on',!!S.shotFmt[k]);
+    if(S.shotEdit!==null) toast('代码已手动编辑，格式键不会覆盖 —— 需要的话点「重新生成」');
+    renderShotCode();});
+  // 手改代码后就以用户的版本为准，不再被自动生成覆盖
+  $('shotCode').oninput=()=>{S.shotEdit=$('shotCode').value; renderShotCode();};
+  $('shotRegen').onclick=()=>{S.shotEdit=null; renderShotCode(); toast('已回到自动生成');};
+  $('shotCopy').onclick=()=>{const c=liveCode();
+    if(c) copy(c, `已复制（${c.length} 格）`); else toast('先填文字内容');};
+  $('shotApply').onclick=()=>{
+    const f=(SHOT.fits.find(o=>o.n===S.shotFit)||SHOT.fits[0]).fit, n=S.shotFit;
+    S.nStops=n;
+    S.stops = n===2 ? [f.stops[0], f.stops[0], f.stops[1], f.stops[1]]
+            : n===3 ? [f.stops[0], f.stops[1], f.stops[1], f.stops[2]]
+                    : f.stops.slice();
+    S.cuts=f.cuts.slice();
+    if(S.shotText){ S.runs=[newRun(S.shotText)]; S.runs[0].st=S.shotStyle;
+      S.runs[0].f={...S.shotFmt}; S.active=0; }
+    [2,3,4].forEach(k=>$('mode'+k).classList.toggle('on',k===n));
+    renderRuns(); renderStops(); render(); setMode2('C');
+    toast(`已套用 ${n} 色渐变（吻合 ${f.match.toFixed(1)}%）`);
+  };
+  renderShotCode();
+  drawSource();
+}
+function loadShot(file){
+  if(!file) return;
+  const img=new Image(), url=URL.createObjectURL(file);
+  img.onload=()=>{ try{ renderShot(extractGlyphs(img), img); }
+    catch(e){ $('shotOut').innerHTML='<div class="note over">读图失败：'+esc(String(e))+'</div>'; }
+    URL.revokeObjectURL(url); };
+  img.onerror=()=>{$('shotOut').innerHTML='<div class="note over">这个文件不是图片。</div>';};
+  img.src=url;
+}
+function setMode2(m){
+  const R=m==='R';
+  $('viewR').style.display=R?'':'none';
+  $('viewC').style.display=R?'none':'';
+  $('tabR').classList.toggle('on',R);
+  $('tabC').classList.toggle('on',!R);
+  $('modeHint').textContent=R?'读别人的标签，取出配色':'做自己的标签';
+  // 逆推时把段落行收起，让源图和预览上下相邻，便于对眼
+  $('dock').classList.toggle('collapsed',R);
+  $('dockToggle').textContent=R?'展开段落':'收起段落';
+  if(R&&SHOT) drawSource();
+}
+$('tabC').onclick=()=>setMode2('C');
+$('tabR').onclick=()=>setMode2('R');
+
+$('drop').onclick=()=>$('file').click();
+$('file').onchange=e=>loadShot(e.target.files[0]);
+['dragenter','dragover'].forEach(ev=>$('drop').addEventListener(ev,e=>{
+  e.preventDefault(); $('drop').classList.add('over');}));
+['dragleave','drop'].forEach(ev=>$('drop').addEventListener(ev,e=>{
+  e.preventDefault(); $('drop').classList.remove('over');}));
+$('drop').addEventListener('drop',e=>{
+  const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) loadShot(f);});
+window.addEventListener('paste',e=>{
+  const it=[...(e.clipboardData&&e.clipboardData.items||[])].find(i=>i.type.startsWith('image/'));
+  if(it){ setMode2('R'); loadShot(it.getAsFile()); }
+});
+
+auditStyles();
+setMode2('C');
+renderRuns(); renderStops(); renderSyms(); render();
+</script>
+</body>
+</html>

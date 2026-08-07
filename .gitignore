@@ -1,0 +1,13 @@
+# 依赖（本仓库刻意零依赖，这里只是防手滑）
+node_modules/
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+*.swp
+
+# 临时产物
+/tmp/
+*.log
+
+# 注意：.claude/skills/ 要提交，它是 Claude Code 自动加载的项目 skill
