@@ -248,7 +248,8 @@ pre.out{margin:0;background:var(--void);border:1px solid var(--line);padding:11p
     <div class="rl" id="runs"></div>
   </div>
 </div>
-<div class="note" style="margin-bottom:2px">每段可以有自己的花体和格式，渐变是全局一条、按字符切给各段。
+<div class="note" style="margin-bottom:2px">每段可以有自己的花体和格式，渐变默认是全局一条、按字符切给各段。
+点段落行末的「镜」可以让某一段跳出全局渐变，自己反向跑一遍色标（例如前段红→蓝，镜像的后段就是蓝→红）。
 花体只改显示，不写回原文。<b>每多一段大约多 12 个字符</b>，看输出栏的长度计。</div>
 
 <div class="modes">
@@ -532,7 +533,7 @@ const SYMNOTE={
 
 /* ═══════════════ 状态 ═══════════════ */
 const FKEYS=['l','o','n','m','k'];
-const newRun = t => ({t:t||'', st:null, f:{l:0,o:0,n:0,m:0,k:0}, fix:null});
+const newRun = t => ({t:t||'', st:null, f:{l:0,o:0,n:0,m:0,k:0}, fix:null, mirror:false});
 const S={
   runs:[newRun('「Takodachi 🐙 Prime」')], active:0,
   wrap:0, nStops:2, cuts:[], cap:50, pk:0,
@@ -584,7 +585,7 @@ function blocks(hover){
     // hover 花体卡片时临时套用到当前段，鼠标移开就恢复 —— 不写入状态
     const si = (hover && HOVER!==null && i===S.active) ? (HOVER<0?null:HOVER) : r.st;
     const styled = apply(si==null?null:STYLES[si], r.t);
-    if(styled.length) out.push({chars:[...styled], f:r.f, fix:r.fix});
+    if(styled.length) out.push({chars:[...styled], f:r.f, fix:r.fix, mirror:!!r.mirror});
   });
   /* 包裹并进首尾段，不另开块。做成独立块的话前后各要多一对渐变标签，
      一对「」就要 30 格；并进去只花字符本身的 2 格。
@@ -619,14 +620,27 @@ function globalRamp(total){
   for(let i=0;i<st.length-1;i++) out.push(...rampN(b[i+1]-b[i], st[i], st[i+1]));
   return out;
 }
+/* 镜像：段落跳出共享的全局连续渐变，自己单独跑一遍反向色阶（色标首尾对调）。
+   均分不占用 S.cuts（那是全局断点的状态，局部反向没有对应 UI 去调它）。 */
+function localRampReversed(n){
+  if(n<=0) return [];
+  const st=activeStops().map(effective).slice().reverse();
+  if(st.length<=1) return Array(n).fill(st[0]||'#ffffff');
+  const segN=st.length-1, b=Array.from({length:segN+1},(_,k)=>Math.round(n*k/segN)), out=[];
+  for(let k=0;k<segN;k++) out.push(...rampN(b[k+1]-b[k], st[k], st[k+1]));
+  return out;
+}
 function cells(hover){
   const bs=blocks(hover), total=bs.reduce((n,b)=>n+b.chars.length,0);
   const cols=globalRamp(total);
   const out=[]; let i=0;
-  bs.forEach(b=>b.chars.forEach(ch=>{
-    out.push({ch, col:b.fix?effective(b.fix):cols[i], f:b.f});
-    i++;
-  }));
+  bs.forEach(b=>{
+    const mcols = (!b.fix && b.mirror) ? localRampReversed(b.chars.length) : null;
+    b.chars.forEach((ch,k)=>{
+      out.push({ch, col:b.fix?effective(b.fix):mcols?mcols[k]:cols[i], f:b.f});
+      i++;
+    });
+  });
   return out;
 }
 /* 输出：每段各开一个渐变标签；纯颜色断点合并成 {#x<>} */
@@ -639,12 +653,23 @@ function codeOut(){
   const segs=[]; let i=0;
   bs.forEach(b=>{
     const n=b.chars.length;
-    const inner=cuts.filter(c=>c>i && c<i+n).map(c=>c-i);
-    const marks=[0,...inner,n];
-    for(let m=0;m<marks.length-1;m++){
-      const a=marks[m], z=marks[m+1];
-      segs.push({text:b.chars.slice(a,z).join(''), f:b.f, fix:b.fix,
-                 c0:cols[i+a], c1:cols[i+z-1]});
+    if(!b.fix && b.mirror){
+      // 局部反向色阶，跟共享 cols/cuts 无关，自己按色标数量均分
+      const mcols=localRampReversed(n), segN=Math.max(1, activeStops().length-1);
+      const mb=Array.from({length:segN+1},(_,k)=>Math.round(n*k/segN));
+      for(let m=0;m<segN;m++){
+        const a=mb[m], z=mb[m+1]; if(z<=a) continue;
+        segs.push({text:b.chars.slice(a,z).join(''), f:b.f, fix:null,
+                   c0:mcols[a], c1:mcols[z-1]});
+      }
+    } else {
+      const inner=cuts.filter(c=>c>i && c<i+n).map(c=>c-i);
+      const marks=[0,...inner,n];
+      for(let m=0;m<marks.length-1;m++){
+        const a=marks[m], z=marks[m+1];
+        segs.push({text:b.chars.slice(a,z).join(''), f:b.f, fix:b.fix,
+                   c0:cols[i+a], c1:cols[i+z-1]});
+      }
     }
     i+=n;
   });
@@ -782,6 +807,8 @@ function renderRuns(){
         style="background:${r.fix?r.fix:'transparent'};${r.fix?'border-color:var(--ember)':''}"></button>
       ${r.fix?`<select data-fixc="${i}" style="flex:0 0 96px;width:96px">${Object.keys(LEGACY).map(k=>
         `<option value="${LEGACY[k]}"${LEGACY[k]===r.fix?' selected':''}>&amp;${k} ${LEGNAME[k]}</option>`).join('')}</select>`:''}
+      <button class="mini fmtbtn${r.mirror?' on':''}" data-mirror="${i}"
+        title="镜像：本段跳出全局连续渐变，自己单独反向跑一遍色标（尾→首）">镜</button>
       <button class="mini" data-up="${i}"${i===0?' disabled':''} title="上移">↑</button>
       <button class="mini" data-dn="${i}"${i===S.runs.length-1?' disabled':''} title="下移">↓</button>
       <button class="mini del" data-del="${i}"${S.runs.length<2?' disabled':''} title="删除这一段">×</button>
@@ -806,6 +833,9 @@ function renderRuns(){
     S.active=i; renderRuns(); render();});
   R.querySelectorAll('[data-fixc]').forEach(el=>el.onchange=()=>{
     S.runs[+el.dataset.fixc].fix=el.value; renderRuns(); render();});
+  R.querySelectorAll('[data-mirror]').forEach(el=>el.onclick=()=>{
+    const i=+el.dataset.mirror; S.runs[i].mirror=!S.runs[i].mirror;
+    S.active=i; renderRuns(); render();});
   R.querySelectorAll('[data-up]').forEach(el=>el.onclick=()=>{
     const i=+el.dataset.up; [S.runs[i-1],S.runs[i]]=[S.runs[i],S.runs[i-1]];
     S.active=i-1; renderRuns(); renderStyles(); render();});
@@ -1074,7 +1104,8 @@ function renderPresets(){
     Object.assign(S,JSON.parse(JSON.stringify(S.presets[+b.dataset.load])));
     if(!S.runs||!S.runs.length) S.runs=[newRun('')];
     S.runs.forEach(r=>{r.f=Object.assign({l:0,o:0,n:0,m:0,k:0},r.f||{});
-                       if(r.fix===undefined)r.fix=null;});
+                       if(r.fix===undefined)r.fix=null;
+                       if(r.mirror===undefined)r.mirror=false;});
     S.active=0;
     if(!S.nStops) S.nStops=2; if(!S.stops||S.stops.length<4) S.stops=['#f37c52','#8860c6','#5555ff','#2f5b8b'];
     [2,3,4].forEach(k=>$('mode'+k).classList.toggle('on',k===S.nStops));
