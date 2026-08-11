@@ -12,6 +12,7 @@
 6. 代码解析器
 7. 渲染分层
 8. 测试方法
+9. 双语（中/EN）
 
 ---
 
@@ -122,3 +123,15 @@ detectScale → extractGlyphs → fitStops → (用户填文字) → shotCode / 
 **必跑的回归**：单段输出与旧版逐字节一致、四张真实截图（Takodachi 2色 / Korone 2色 / cottagecrisps 3色 / THAT'S NOT MY EAR 3色）的色标数量判定全对、段落删除边界、hover 不污染输出。
 
 沙箱 console 方法不全，桩里用 `process.stdout.write` 而不是 `console.log`。
+
+## 9. 双语（中/EN）
+
+`S.lang` ∈ `'zh'|'en'`，页头「EN/中」按钮切换，调用 `applyLang()`。
+
+- **动态生成的文字**（render* 系列函数里拼出来的 HTML/文案）：直接在调用处用 `t(zh,en)`（`const t=(zh,en)=>S.lang==='zh'?zh:en`）取值，两种语言写在一起方便对照，不用另开一张大字典表维护。
+- **写死在 HTML 里、JS 不会再碰的静态标签**（section 标题、说明文字、按钮文案）：给元素配 `id`，登记进 `STATIC_I18N`（纯文字，`textContent`）或 `STATIC_HTML_I18N`（带 `<b>`/`<span class=badge>` 这类内嵌标签，`innerHTML`），`applyStaticI18n()` 统一刷。
+- **会被多处复用的名字**（花体名、包裹名、符号分类、传统色码名、配色预设名）：改在各自数据表里加 `en` 字段（`STYLES[i].en`）或平行的 `_EN` 映射表（`SYM_CAT_EN`、`LEGNAME_EN`），内部 key（`S.cat`、`GAME`/`DUP_OK` 的查表 key）继续用中文不变，只是显示的时候查 `en`。改动风险低——不动内部逻辑，纯加字段。
+- **两个坑**：
+  1. 模块顶层 `const` 如果在定义时就调 `t(...)`（比如 `const STOPLABEL={2:[t('起','Start'),...]}`），只会在脚本加载那一刻求值一次，之后切语言不会重新跑，会卡死在启动时的语言上。必须存成 `{zh:[...],en:[...]}` 两套，取用时按 `S.lang` 查，不能在定义处直接调 `t()`。
+  2. 引入全局 `t()` 之后，几个函数原本用 `t` 当局部变量名（`newRun(t)`、`hsv2hex` 内部、`lerp(a,b,t)`、`toast` 里的 DOM 元素）——这些是**参数/局部变量遮蔽**，虽然函数体没调全局 `t()` 所以当时没坏，但极易在后续维护里踩到"改了这个函数却发现 t() 不生效"。已经全部改名（`newRun(txt)`、`lerp(a,b,pt)` 等）。以后新写函数**不要再用 `t` 当参数名**。
+- **切换流程**：`applyLang()` 依次做——设置按钮文案、跑 `applyStaticI18n()`、手动同步几个不经过标准 render 流程的动态按钮文案（`fontToggle`/`dockToggle`/`modeHint`，这些平时由各自的 onclick handler 维护，不在 `render()` 里）、重新跑 `auditStyles()`/`renderGradPresetOptions()`/`renderRuns()`/`renderStops()`/`renderSyms()`/`render()`/`renderPresets()`，如果逆推面板正开着（`SHOT&&SHOT.img`）额外调 `reExtract()` 整块重建（`renderShot()` 的模板字符串太大，重新提取一遍比单独维护一套"只换文字"的补丁便宜）。

@@ -225,8 +225,9 @@ pre.out{margin:0;background:var(--void);border:1px solid var(--line);padding:11p
 <div class="wrap">
 
 <header class="masthead">
-  <h1>标签锻造台 <span id="vzonSub" style="font-weight:400">Vzon's item tag creator</span></h1>
-  <span class="sub">段落 · 花体 · 符号 · 渐变 · EssentialsX 代码</span>
+  <h1><span id="mainTitle">标签锻造台</span> <span id="vzonSub" style="font-weight:400">Vzon's item tag creator</span></h1>
+  <span class="sub" id="headerSub">段落 · 花体 · 符号 · 渐变 · EssentialsX 代码</span>
+  <button id="langToggle" class="ver" style="cursor:pointer;background:transparent;border:1px solid var(--line);margin-left:auto">EN</button>
   <span class="ver">v2</span>
 </header>
 
@@ -248,7 +249,7 @@ pre.out{margin:0;background:var(--void);border:1px solid var(--line);padding:11p
     <div class="rl" id="runs"></div>
   </div>
 </div>
-<div class="note" style="margin-bottom:2px">每段可以有自己的花体和格式，渐变默认是全局一条、按字符切给各段。
+<div class="note" id="dockNote" style="margin-bottom:2px">每段可以有自己的花体和格式，渐变默认是全局一条、按字符切给各段。
 点段落行末的「镜」可以让某一段跳出全局渐变，自己反向跑一遍色标（例如前段红→蓝，镜像的后段就是蓝→红）。
 花体只改显示，不写回原文。<b>每多一段大约多 12 个字符</b>，看输出栏的长度计。</div>
 
@@ -260,17 +261,17 @@ pre.out{margin:0;background:var(--void);border:1px solid var(--line);padding:11p
 
 <div id="viewR" style="display:none">
 <div class="panel">
-  <div class="drop" id="drop">把截图拖进来，或 <b>Ctrl+V 直接粘贴</b>，或点这里选文件<br>
-    <span style="font-size:11px">不需要整数倍原图 —— 取色是缩放无关的</span></div>
+  <div class="drop" id="drop"><span id="dropHint">把截图拖进来，或 <b>Ctrl+V 直接粘贴</b>，或点这里选文件</span><br>
+    <span style="font-size:11px" id="dropSub">不需要整数倍原图 —— 取色是缩放无关的</span></div>
   <input type="file" id="file" accept="image/*" style="display:none">
   <div id="shotOut"></div>
 </div>
 </div>
 
 <div id="viewC">
-<h2 class="sec">花体 · 作用于当前选中的段</h2>
+<h2 class="sec" id="secStyles">花体 · 作用于当前选中的段</h2>
 <div class="panel">
-  <div class="note" style="margin:0 0 10px">
+  <div class="note" id="styleNote" style="margin:0 0 10px">
     <span class="badge b-safe">实测可用</span> 游戏内辨识度高；
     <span class="badge b-dup">近似普通字 / 斜体</span> 能显示，但 8×16 点阵吃掉了字重和衬线差别；
     鼠标<b>悬停</b>在卡片上，顶部预览会实时套用该花体，移开自动恢复 —— 不用先点选。
@@ -284,22 +285,22 @@ pre.out{margin:0;background:var(--void);border:1px solid var(--line);padding:11p
   <div class="note" id="audit"></div>
 </div>
 
-<h2 class="sec">符号 · 插入当前选中的段</h2>
+<h2 class="sec" id="secSymbols">符号 · 插入当前选中的段</h2>
 <div class="panel">
   <div class="symcats" id="symcats"></div>
   <div class="symgrid" id="symgrid"></div>
   <div class="note" id="symnote"></div>
 </div>
 
-<h2 class="sec">包裹</h2>
+<h2 class="sec" id="secWrap">包裹</h2>
 <div class="panel">
   <div class="wraps" id="wraps"></div>
-  <div class="note">包裹加在整条标签的最外层，渐变会流经它。括号里是它吃掉的字符数。</div>
+  <div class="note" id="wrapNote">包裹加在整条标签的最外层，渐变会流经它。括号里是它吃掉的字符数。</div>
 </div>
 
 
 
-<h2 class="sec">渐变</h2>
+<h2 class="sec" id="secGradient">渐变</h2>
 <div class="panel">
   <div class="row" style="margin-bottom:12px">
     <button id="mode2" class="on">2 色</button>
@@ -322,21 +323,21 @@ pre.out{margin:0;background:var(--void);border:1px solid var(--line);padding:11p
   <div class="hexlist" id="hexlist"></div>
 </div>
 
-<h2 class="sec">输出</h2>
+<h2 class="sec" id="secOutput">输出</h2>
 <div class="panel">
   <div class="row" style="margin-bottom:11px">
-    <label class="f" style="margin:0">颜色编码</label>
+    <label class="f" id="encLabel" style="margin:0">颜色编码</label>
     <button id="enc3" class="on">3 位 · 4096 色</button>
     <button id="enc6">6 位 · 1677 万</button>
     <button id="encL">色码 · 16 色</button>
   </div>
   <pre class="out" id="code"></pre>
   <div class="meter">
-    <span>代码长度 <b id="mLen">0</b> / <b><input type="text" id="cap" value="50"
+    <span><span id="lenLabel">代码长度</span> <b id="mLen">0</b> / <b><input type="text" id="cap" value="50"
       style="width:38px;display:inline;padding:1px 4px;font-size:11px;text-align:center"></b>
       <span id="mVerdict"></span></span>
-    <span>可见字符 <b id="mVis">0</b></span>
-    <span>段数 <b id="mRuns">1</b></span>
+    <span><span id="visLabel">可见字符</span> <b id="mVis">0</b></span>
+    <span><span id="runsLabel">段数</span> <b id="mRuns">1</b></span>
   </div>
   <div class="meter" style="margin-top:4px"><span id="mCmp"></span></div>
   <div class="note" id="mSave" style="margin-top:6px"></div>
@@ -346,14 +347,16 @@ pre.out{margin:0;background:var(--void);border:1px solid var(--line);padding:11p
     <span class="grow"></span>
     <button id="bSave">存为预设</button>
   </div>
-  <div class="note">50 是 anvil 改名默认上限，<b>颜色代码一起算</b>，emoji 算 2 格。
+  <div class="note" id="outputNote">50 是 anvil 改名默认上限，<b>颜色代码一起算</b>，emoji 算 2 格。
     告示牌按像素宽度限制、昵称看插件配置，上限可改。</div>
 </div>
 
-<h2 class="sec">预设</h2>
+<h2 class="sec" id="secPresets">预设</h2>
 <div class="panel">
-  <div id="presetList" class="note" style="margin:0 0 10px">还没有预设。</div>
+  <div id="presetList" class="note" style="margin:0 0 10px;max-height:300px;overflow-y:auto">还没有预设。</div>
   <div class="row">
+    <button class="mini" id="bSelAll">全选</button>
+    <button id="bExportSel">导出所选</button>
     <button id="bExport">导出全部（复制 JSON）</button>
     <button id="bImport">导入（粘贴 JSON）</button>
   </div>
@@ -381,50 +384,50 @@ const digits = s => { let o=''; for(let i=0;i<10;i++) o+=String.fromCodePoint(s+
 
 /* comb: 组合符装饰（字符数翻倍）  rev: 反转并镜像括号 */
 const STYLES=[
- {n:'小型大写', up:'ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ', lo:'ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ'},
- {n:'音节文字', up:'ᗩᗷᑕᗪEᖴGᕼIᒍᛕᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ', lo:'ᗩᗷᑕᗪEᖴGᕼIᒍᛕᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ'},
- {n:'西里尔仿字', up:'ΛᏰᏨᎠᎬFԌҤᎥᏥӃᏝᎷNᎾᏢႭᖆᏕፕႮᏉᏇХYᏃ', lo:'ɑҍϲժɛƒցհìʝӄⅼʍռօքզʀʂէմѵա×վᴢ'},
- {n:'西里尔大写', up:'АВСDЄҒԌНІЈКŁМИОРQЯЅТЦVШХУZ', lo:'АВСDЄҒԌНІЈКŁМИОРQЯЅТЦVШХУZ'},
- {n:'希腊仿字', up:'ΑΒϹDΕϜGΗΙJΚΛΜΝΟΡQΡЅΤΥVΩΧΥΖ', lo:'αβϲδεφγηιjκλμηορqɾςτυνωχγζ'},
- {n:'希伯来混排', up:'ǞɮĊƉƐʄƓⱧɨJӃʟϺⱤƠƤԺƦֆȶʊʋῳXʏʐ', lo:'ǟɮċɖɛʄɢɦɨjӄʟʍռօքզʀֆȶʊʋῳxʏʐ'},
- {n:'划线拉丁', up:'ȺɃȻĐɆFǤĦƗɈꝀŁMNØᵽɊɌSŦɄVWXɎƵ', lo:'ⱥƀȼđɇfǥħɨɉꝁłmnøᵽɋɍsŧᵾvwxɏƶ'},
- {n:'符文', up:'ᚨᛒᚴᛞᛖᚠᚷᚼᛁᛃᚴᛚᛗᚾᚮᛈᛩᚱᛊᛏᚢᚡᚹᛪᚤᛉ', lo:'ᚨᛒᚴᛞᛖᚠᚷᚼᛁᛃᚴᛚᛗᚾᚮᛈᛩᚱᛊᛏᚢᚡᚹᛪᚤᛉ'},
- {n:'全角', up:seq(0xFF21), lo:seq(0xFF41), dg:digits(0xFF10), sp:'\u3000'},
- {n:'圆圈', up:seq(0x24B6), lo:seq(0x24D0), dg:'⓪'+digits(0x2460)},
- {n:'带括号', up:seq(0x249C), lo:seq(0x249C), dg:'⑽'+digits(0x2474)},
- {n:'上标', up:'ᴬᴮꟲᴰᴱꟳᴳᴴᴵᴶᴷᴸᴹᴺᴼᴾꟴᴿˢᵀᵁⱽᵂˣʸᶻ', lo:'ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖ۹ʳˢᵗᵘᵛʷˣʸᶻ', dg:'⁰¹²³⁴⁵⁶⁷⁸⁹'},
- {n:'下标', up:'ₐBCDₑFGₕᵢⱼₖₗₘₙₒₚQᵣₛₜᵤᵥwₓYZ', lo:'ₐbcdₑfgₕᵢⱼₖₗₘₙₒₚqᵣₛₜᵤᵥwₓyz', dg:'₀₁₂₃₄₅₆₇₈₉'},
- {n:'倒转', up:'∀ᗺƆᗡƎℲ⅁HIſʞ⅂WNOԀΌᴚSʇ∩ΛMXʎZ', lo:'ɐqɔpǝɟƃɥıɾʞlɯuodbɹsʇnʌʍxʎz', rev:true},
- {n:'花体', up:seq(0x1D49C,{B:'ℬ',E:'ℰ',F:'ℱ',H:'ℋ',I:'ℐ',L:'ℒ',M:'ℳ',R:'ℛ'}),
+ {n:'小型大写', en:'Small Caps', up:'ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ', lo:'ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ'},
+ {n:'音节文字', en:'Syllabics', up:'ᗩᗷᑕᗪEᖴGᕼIᒍᛕᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ', lo:'ᗩᗷᑕᗪEᖴGᕼIᒍᛕᒪᗰᑎOᑭᑫᖇᔕTᑌᐯᗯ᙭Yᘔ'},
+ {n:'西里尔仿字', en:'Cyrillic Look-alike', up:'ΛᏰᏨᎠᎬFԌҤᎥᏥӃᏝᎷNᎾᏢႭᖆᏕፕႮᏉᏇХYᏃ', lo:'ɑҍϲժɛƒցհìʝӄⅼʍռօքզʀʂէմѵա×վᴢ'},
+ {n:'西里尔大写', en:'Cyrillic Caps Look-alike', up:'АВСDЄҒԌНІЈКŁМИОРQЯЅТЦVШХУZ', lo:'АВСDЄҒԌНІЈКŁМИОРQЯЅТЦVШХУZ'},
+ {n:'希腊仿字', en:'Greek Look-alike', up:'ΑΒϹDΕϜGΗΙJΚΛΜΝΟΡQΡЅΤΥVΩΧΥΖ', lo:'αβϲδεφγηιjκλμηορqɾςτυνωχγζ'},
+ {n:'希伯来混排', en:'Hebrew Mixed Look-alike', up:'ǞɮĊƉƐʄƓⱧɨJӃʟϺⱤƠƤԺƦֆȶʊʋῳXʏʐ', lo:'ǟɮċɖɛʄɢɦɨjӄʟʍռօքզʀֆȶʊʋῳxʏʐ'},
+ {n:'划线拉丁', en:'Latin Strikethrough', up:'ȺɃȻĐɆFǤĦƗɈꝀŁMNØᵽɊɌSŦɄVWXɎƵ', lo:'ⱥƀȼđɇfǥħɨɉꝁłmnøᵽɋɍsŧᵾvwxɏƶ'},
+ {n:'符文', en:'Runic', up:'ᚨᛒᚴᛞᛖᚠᚷᚼᛁᛃᚴᛚᛗᚾᚮᛈᛩᚱᛊᛏᚢᚡᚹᛪᚤᛉ', lo:'ᚨᛒᚴᛞᛖᚠᚷᚼᛁᛃᚴᛚᛗᚾᚮᛈᛩᚱᛊᛏᚢᚡᚹᛪᚤᛉ'},
+ {n:'全角', en:'Fullwidth', up:seq(0xFF21), lo:seq(0xFF41), dg:digits(0xFF10), sp:'\u3000'},
+ {n:'圆圈', en:'Circled', up:seq(0x24B6), lo:seq(0x24D0), dg:'⓪'+digits(0x2460)},
+ {n:'带括号', en:'Parenthesized', up:seq(0x249C), lo:seq(0x249C), dg:'⑽'+digits(0x2474)},
+ {n:'上标', en:'Superscript', up:'ᴬᴮꟲᴰᴱꟳᴳᴴᴵᴶᴷᴸᴹᴺᴼᴾꟴᴿˢᵀᵁⱽᵂˣʸᶻ', lo:'ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖ۹ʳˢᵗᵘᵛʷˣʸᶻ', dg:'⁰¹²³⁴⁵⁶⁷⁸⁹'},
+ {n:'下标', en:'Subscript', up:'ₐBCDₑFGₕᵢⱼₖₗₘₙₒₚQᵣₛₜᵤᵥwₓYZ', lo:'ₐbcdₑfgₕᵢⱼₖₗₘₙₒₚqᵣₛₜᵤᵥwₓyz', dg:'₀₁₂₃₄₅₆₇₈₉'},
+ {n:'倒转', en:'Upside Down', up:'∀ᗺƆᗡƎℲ⅁HIſʞ⅂WNOԀΌᴚSʇ∩ΛMXʎZ', lo:'ɐqɔpǝɟƃɥıɾʞlɯuodbɹsʇnʌʍxʎz', rev:true},
+ {n:'花体', en:'Script', up:seq(0x1D49C,{B:'ℬ',E:'ℰ',F:'ℱ',H:'ℋ',I:'ℐ',L:'ℒ',M:'ℳ',R:'ℛ'}),
              lo:seq(0x1D4B6,{e:'ℯ',g:'ℊ',o:'ℴ'})},
- {n:'花体粗', up:seq(0x1D4D0), lo:seq(0x1D4EA)},
- {n:'哥特体', up:seq(0x1D504,{C:'ℭ',H:'ℌ',I:'ℑ',R:'ℜ',Z:'ℨ'}), lo:seq(0x1D51E)},
- {n:'哥特粗', up:seq(0x1D56C), lo:seq(0x1D586)},
- {n:'古意大利', up:'𐌀𐌁𐌂𐌃𐌄𐌅𐌂𐌇𐌉𐌉𐌊𐌋𐌌𐌍𐌏𐌐𐌒𐌓𐌔𐌕𐌖𐌅𐌅𐌗𐌖𐌆',
+ {n:'花体粗', en:'Bold Script', up:seq(0x1D4D0), lo:seq(0x1D4EA)},
+ {n:'哥特体', en:'Fraktur', up:seq(0x1D504,{C:'ℭ',H:'ℌ',I:'ℑ',R:'ℜ',Z:'ℨ'}), lo:seq(0x1D51E)},
+ {n:'哥特粗', en:'Bold Fraktur', up:seq(0x1D56C), lo:seq(0x1D586)},
+ {n:'古意大利', en:'Old Italic', up:'𐌀𐌁𐌂𐌃𐌄𐌅𐌂𐌇𐌉𐌉𐌊𐌋𐌌𐌍𐌏𐌐𐌒𐌓𐌔𐌕𐌖𐌅𐌅𐌗𐌖𐌆',
                lo:'𐌀𐌁𐌂𐌃𐌄𐌅𐌂𐌇𐌉𐌉𐌊𐌋𐌌𐌍𐌏𐌐𐌒𐌓𐌔𐌕𐌖𐌅𐌅𐌗𐌖𐌆'},
- {n:'方框', up:seq(0x1F130), lo:seq(0x1F130)},
- {n:'反白方框', up:seq(0x1F170), lo:seq(0x1F170)},
- {n:'反白圆圈', up:seq(0x1F150), lo:seq(0x1F150), dg:'⓿'+digits(0x278A)},
- {n:'衬线粗体', up:seq(0x1D400), lo:seq(0x1D41A), dg:digits(0x1D7CE)},
- {n:'衬线斜体', up:seq(0x1D434), lo:seq(0x1D44E,{h:'ℎ'})},
- {n:'衬线粗斜', up:seq(0x1D468), lo:seq(0x1D482)},
- {n:'黑板粗体', up:seq(0x1D538,{C:'ℂ',H:'ℍ',N:'ℕ',P:'ℙ',Q:'ℚ',R:'ℝ',Z:'ℤ'}),
+ {n:'方框', en:'Squared', up:seq(0x1F130), lo:seq(0x1F130)},
+ {n:'反白方框', en:'Negative Squared', up:seq(0x1F170), lo:seq(0x1F170)},
+ {n:'反白圆圈', en:'Negative Circled', up:seq(0x1F150), lo:seq(0x1F150), dg:'⓿'+digits(0x278A)},
+ {n:'衬线粗体', en:'Bold Serif', up:seq(0x1D400), lo:seq(0x1D41A), dg:digits(0x1D7CE)},
+ {n:'衬线斜体', en:'Italic Serif', up:seq(0x1D434), lo:seq(0x1D44E,{h:'ℎ'})},
+ {n:'衬线粗斜', en:'Bold Italic Serif', up:seq(0x1D468), lo:seq(0x1D482)},
+ {n:'黑板粗体', en:'Double-Struck', up:seq(0x1D538,{C:'ℂ',H:'ℍ',N:'ℕ',P:'ℙ',Q:'ℚ',R:'ℝ',Z:'ℤ'}),
                lo:seq(0x1D552), dg:digits(0x1D7D8)},
- {n:'无衬线', up:seq(0x1D5A0), lo:seq(0x1D5BA), dg:digits(0x1D7E2)},
- {n:'无衬线粗', up:seq(0x1D5D4), lo:seq(0x1D5EE), dg:digits(0x1D7EC)},
- {n:'无衬线斜', up:seq(0x1D608), lo:seq(0x1D622)},
- {n:'等宽', up:seq(0x1D670), lo:seq(0x1D68A), dg:digits(0x1D7F6)},
+ {n:'无衬线', en:'Sans-Serif', up:seq(0x1D5A0), lo:seq(0x1D5BA), dg:digits(0x1D7E2)},
+ {n:'无衬线粗', en:'Bold Sans-Serif', up:seq(0x1D5D4), lo:seq(0x1D5EE), dg:digits(0x1D7EC)},
+ {n:'无衬线斜', en:'Italic Sans-Serif', up:seq(0x1D608), lo:seq(0x1D622)},
+ {n:'等宽', en:'Monospace', up:seq(0x1D670), lo:seq(0x1D68A), dg:digits(0x1D7F6)},
  /* 预组合字符：单一码点，1 格，点画在字形里所以贴合。
     拉丁文没有预组合形式的字母保持原样 —— 这正是那些花体网站的做法。 */
- {n:'预组合·双点', pre:{a:'ä',e:'ë',i:'ï',o:'ö',u:'ü',y:'ÿ',t:'ẗ',w:'ẅ',x:'ẍ',h:'ḧ',
+ {n:'预组合·双点', en:'Precomposed · Diaeresis', pre:{a:'ä',e:'ë',i:'ï',o:'ö',u:'ü',y:'ÿ',t:'ẗ',w:'ẅ',x:'ẍ',h:'ḧ',
    A:'Ä',E:'Ë',I:'Ï',O:'Ö',U:'Ü',Y:'Ÿ',W:'Ẅ',X:'Ẍ',H:'Ḧ'}},
- {n:'预组合·点上', pre:{a:'ȧ',b:'ḃ',c:'ċ',d:'ḋ',e:'ė',f:'ḟ',g:'ġ',h:'ḣ',m:'ṁ',n:'ṅ',
+ {n:'预组合·点上', en:'Precomposed · Dot Above', pre:{a:'ȧ',b:'ḃ',c:'ċ',d:'ḋ',e:'ė',f:'ḟ',g:'ġ',h:'ḣ',m:'ṁ',n:'ṅ',
    o:'ȯ',p:'ṗ',r:'ṙ',s:'ṡ',t:'ṫ',w:'ẇ',x:'ẋ',y:'ẏ',z:'ż',
    A:'Ȧ',B:'Ḃ',C:'Ċ',D:'Ḋ',E:'Ė',F:'Ḟ',G:'Ġ',H:'Ḣ',I:'İ',M:'Ṁ',N:'Ṅ',O:'Ȯ',P:'Ṗ',
    R:'Ṙ',S:'Ṡ',T:'Ṫ',W:'Ẇ',X:'Ẋ',Y:'Ẏ',Z:'Ż'}},
- {n:'预组合·波浪', pre:{a:'ã',e:'ẽ',i:'ĩ',n:'ñ',o:'õ',u:'ũ',v:'ṽ',y:'ỹ',
+ {n:'预组合·波浪', en:'Precomposed · Tilde', pre:{a:'ã',e:'ẽ',i:'ĩ',n:'ñ',o:'õ',u:'ũ',v:'ṽ',y:'ỹ',
    A:'Ã',E:'Ẽ',I:'Ĩ',N:'Ñ',O:'Õ',U:'Ũ',V:'Ṽ',Y:'Ỹ'}},
- {n:'预组合·尖音', pre:{a:'á',c:'ć',e:'é',g:'ǵ',i:'í',k:'ḱ',l:'ĺ',m:'ḿ',n:'ń',o:'ó',
+ {n:'预组合·尖音', en:'Precomposed · Acute', pre:{a:'á',c:'ć',e:'é',g:'ǵ',i:'í',k:'ḱ',l:'ĺ',m:'ḿ',n:'ń',o:'ó',
    p:'ṕ',r:'ŕ',s:'ś',u:'ú',w:'ẃ',y:'ý',z:'ź',
    A:'Á',C:'Ć',E:'É',G:'Ǵ',I:'Í',K:'Ḱ',L:'Ĺ',M:'Ḿ',N:'Ń',O:'Ó',P:'Ṕ',R:'Ŕ',S:'Ś',
    U:'Ú',W:'Ẃ',Y:'Ý',Z:'Ź'}},
@@ -441,12 +444,12 @@ const GAME={};
 '预组合·双点,预组合·点上,预组合·波浪,预组合·尖音'.split(',').forEach(n=>GAME[n]='e');
 STYLES.forEach(s=>{ if(s.comb) GAME[s.n]='c'; });
 const BADGE={
-  d:'<span class="badge b-safe">实测可用</span>',
-  p:'<span class="badge b-dup">近似普通字</span>',
-  i:'<span class="badge b-dup">近似斜体</span>',
-  n:'<span class="badge b-dup">未实测</span>',
-  c:'<span class="badge b-cost">翻倍 + MC 会飘</span>',
-  e:'<span class="badge b-safe">实测 · 1 格贴合</span>',
+  d:{zh:'<span class="badge b-safe">实测可用</span>', en:'<span class="badge b-safe">Verified</span>'},
+  p:{zh:'<span class="badge b-dup">近似普通字</span>', en:'<span class="badge b-dup">Looks Like Plain</span>'},
+  i:{zh:'<span class="badge b-dup">近似斜体</span>', en:'<span class="badge b-dup">Looks Like Italic</span>'},
+  n:{zh:'<span class="badge b-dup">未实测</span>', en:'<span class="badge b-dup">Untested</span>'},
+  c:{zh:'<span class="badge b-cost">翻倍 + MC 会飘</span>', en:'<span class="badge b-cost">Doubles + drifts in MC</span>'},
+  e:{zh:'<span class="badge b-safe">实测 · 1 格贴合</span>', en:'<span class="badge b-safe">Verified · 1 char, fits well</span>'},
 };
 
 /* 自检：手打映射表曾经把反白方框的 i/j 打成 G/H，Prime 显示成 PRGME。
@@ -469,8 +472,8 @@ function auditStyles(){
   /* 沙箱里 console 的方法不保证齐全，所以自检结果走界面，不走 console。 */
   const box=document.getElementById('audit');
   if(box) box.innerHTML = bad.length
-    ? `<span class="over">花体表自检失败（${bad.length} 项）：</span> ${bad.map(esc).join('；')}`
-    : `自检通过：${STYLES.length} 种花体映射表完整。`;
+    ? `<span class="over">${t(`花体表自检失败（${bad.length} 项）：`,`Style table self-check failed (${bad.length} issues):`)}</span> ${bad.map(esc).join('；')}`
+    : t(`自检通过：${STYLES.length} 种花体映射表完整。`,`Self-check passed: all ${STYLES.length} style tables are complete.`);
   return bad;
 }
 
@@ -496,18 +499,18 @@ function apply(st,s){
 
 /* ═══════════════ 包裹 ═══════════════ */
 const WRAPS=[
- ['无', '', ''],
- ['方块渐变', '█▓▒░', '░▒▓█'],
- ['方块长', '█▓▒▒░░░', '░░░▒▒▓█'],
- ['角括号', '「', '」'],
- ['双角括号', '『', '』'],
- ['黑镜头括号', '【', '】'],
- ['双横线', '▬▬', '▬▬'],
- ['星彡', '★彡', '彡★'],
- ['双箭头', '»»', '««'],
- ['三角', '▶', '◀'],
- ['菱形', '⟦◆', '◆⟧'],
- ['花饰', '✦═', '═✦'],
+ ['无', '', '', 'None'],
+ ['方块渐变', '█▓▒░', '░▒▓█', 'Gradient Blocks'],
+ ['方块长', '█▓▒▒░░░', '░░░▒▒▓█', 'Long Gradient Blocks'],
+ ['角括号', '「', '」', 'Corner Brackets'],
+ ['双角括号', '『', '』', 'Double Corner Brackets'],
+ ['黑镜头括号', '【', '】', 'Lens Brackets'],
+ ['双横线', '▬▬', '▬▬', 'Double Line'],
+ ['星彡', '★彡', '彡★', 'Star Sparkle'],
+ ['双箭头', '»»', '««', 'Double Arrow'],
+ ['三角', '▶', '◀', 'Triangle'],
+ ['菱形', '⟦◆', '◆⟧', 'Diamond'],
+ ['花饰', '✦═', '═✦', 'Floral'],
 ];
 
 /* ═══════════════ 符号库 ═══════════════ */
@@ -530,10 +533,20 @@ const SYMNOTE={
  '已验证 emoji':'目前只有 🐙 实测确认在你服渲染成像素字形。其余资源包 emoji 还没跑探针。',
  '方块':'█▓▒░ 用来做渐隐边框，但每个都占 1 格，很吃 50 上限。',
 };
+/* SYMS/SYMNOTE 的内部键仍然是中文（S.cat 存的就是这个字符串，改成别的键要动的地方太多）。
+   显示名另开一张按同一批键对照的英文表，key 对不上就会 fallback 回中文，不会崩。 */
+const SYM_CAT_EN={'括号':'Brackets','星花':'Stars & Flowers','箭头':'Arrows','记号':'Marks',
+ '几何':'Geometric','方块':'Blocks','装饰':'Decorative','器物':'Objects','心与脸':'Hearts & Faces',
+ '分隔':'Dividers','服务器 /emoji':'Server Emoji','已验证 emoji':'Verified Emoji'};
+const SYMNOTE_EN={
+ '服务器 /emoji':'These are the literal characters behind HoloCraft\'s <code>/emoji</code> shortcodes. Shortcodes (<code>:star:</code>) only work in chat — item names need the character itself.',
+ '已验证 emoji':'Only 🐙 has been verified to render as pixel art on your server so far. The rest of the resource-pack emoji haven\'t been probed yet.',
+ '方块':'█▓▒░ are used for fade-out borders, but each one costs 1 slot — they eat into the 50-char cap fast.',
+};
 
 /* ═══════════════ 状态 ═══════════════ */
 const FKEYS=['l','o','n','m','k'];
-const newRun = t => ({t:t||'', st:null, f:{l:0,o:0,n:0,m:0,k:0}, fix:null, mirror:false});
+const newRun = txt => ({t:txt||'', st:null, f:{l:0,o:0,n:0,m:0,k:0}, fix:null, mirror:false});
 const S={
   runs:[newRun('「Takodachi 🐙 Prime」')], active:0,
   wrap:0, nStops:2, cuts:[], cap:50, pk:0,
@@ -541,13 +554,17 @@ const S={
   enc:'hex3', pixel:false, lore:true, presets:[], cat:'括号',
   shotText:'', shotStyle:null, shotFit:0, shotPk:0, shotCustom:null,
   shotFmt:{l:0,o:0,n:0,m:0,k:0}, shotEdit:null, shotCrop:null,
+  lang:'zh',
 };
 
 const $=id=>document.getElementById(id);
+/* 双语：t(zh,en) 就地取用，两种语言写在调用处方便对照，不用另开一张大字典表维护。
+   category/wrap/style 这类会被多处复用的名字，改在各自数据表里加 en 字段。 */
+const t=(zh,en)=>S.lang==='zh'?zh:en;
 const esc=s=>s.replace(/[<>&"]/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
 const hex2rgb=h=>{h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));};
 const rgb2hex=a=>'#'+a.map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('');
-const lerp=(a,b,t)=>{const A=hex2rgb(a),B=hex2rgb(b);return rgb2hex([0,1,2].map(i=>A[i]+(B[i]-A[i])*t));};
+const lerp=(a,b,pt)=>{const A=hex2rgb(a),B=hex2rgb(b);return rgb2hex([0,1,2].map(i=>A[i]+(B[i]-A[i])*pt));};
 
 /* ── 三档编码 ── */
 const LEGACY={'0':'#000000','1':'#0000aa','2':'#00aa00','3':'#00aaaa','4':'#aa0000',
@@ -555,6 +572,10 @@ const LEGACY={'0':'#000000','1':'#0000aa','2':'#00aa00','3':'#00aaaa','4':'#aa00
  'a':'#55ff55','b':'#55ffff','c':'#ff5555','d':'#ff55ff','e':'#ffff55','f':'#ffffff'};
 const LEGNAME={'0':'黑','1':'深蓝','2':'深绿','3':'深青','4':'深红','5':'深紫','6':'金',
  '7':'灰','8':'深灰','9':'蓝','a':'绿','b':'青','c':'红','d':'品红','e':'黄','f':'白'};
+/* 官方 Minecraft 传统色码英文名（§0-§f），不是我拍的 —— 直接对应游戏内 /help 或 wiki 的命名。 */
+const LEGNAME_EN={'0':'Black','1':'Dark Blue','2':'Dark Green','3':'Dark Aqua','4':'Dark Red',
+ '5':'Dark Purple','6':'Gold','7':'Gray','8':'Dark Gray','9':'Blue','a':'Green','b':'Aqua',
+ 'c':'Red','d':'Light Purple','e':'Yellow','f':'White'};
 const to3 = h => hex2rgb(h).map(v=>Math.round(v/17).toString(16)).join('');
 const exp3 = s => '#'+[...s].map(c=>c+c).join('');
 function legOf(hex){
@@ -751,17 +772,17 @@ function render(){
     `<span style="border-color:${o.col}">${o.col.slice(1).toUpperCase()}</span>`).join(' ');
 
   const code=codeOut(), Lm=lens();
-  $('code').textContent=code||'（空）';
+  $('code').textContent=code||t('（空）','(empty)');
   $('mLen').textContent=code.length;
   $('mVis').textContent=cs.length;
-  $('mRuns').textContent=S.runs.length+(S.wrap?' + 包裹':'');
+  $('mRuns').textContent=S.runs.length+(S.wrap?t(' + 包裹',' + wrap'):'');
   const over=code.length>S.cap;
-  $('mVerdict').textContent=over?`超出 ${code.length-S.cap}`:'放得下';
+  $('mVerdict').textContent=over?t(`超出 ${code.length-S.cap}`,`Over by ${code.length-S.cap}`):t('放得下','Fits');
   $('mVerdict').className=over?'over':'ok';
   $('mLen').className=over?'over':'';
   $('mSave').innerHTML = over ? saveHints(code.length-S.cap, Lm) : '';
   $('mCmp').innerHTML=['hex6','hex3','leg'].map(e=>{
-    const nm={hex6:'6 位',hex3:'3 位',leg:'色码'}[e], on=S.enc===e, d=Lm[e]-Lm[S.enc];
+    const nm={hex6:t('6 位','6-digit'),hex3:t('3 位','3-digit'),leg:t('色码','Legacy')}[e], on=S.enc===e, d=Lm[e]-Lm[S.enc];
     return `<span style="${on?'color:var(--ember);font-weight:650':''}">${nm} <b>${Lm[e]}</b>${
       on?'':` <span style="color:${d<0?'#4fae6b':'var(--ink-faint)'}">${d>0?'+':''}${d}</span>`}</span>`;
   }).join(' · ');
@@ -772,21 +793,23 @@ function render(){
 /* 超限时按省下的格数排序给建议 —— 不要让用户自己去猜哪里贵 */
 function saveHints(need, Lm){
   const tips=[], bs=blocks();
-  if(S.enc!=='hex3' && Lm.hex3<Lm[S.enc]) tips.push([Lm[S.enc]-Lm.hex3,'换 3 位编码']);
-  if(S.enc!=='leg'  && Lm.leg <Lm[S.enc]) tips.push([Lm[S.enc]-Lm.leg,'换 16 色码（配色会失真）']);
+  if(S.enc!=='hex3' && Lm.hex3<Lm[S.enc]) tips.push([Lm[S.enc]-Lm.hex3,t('换 3 位编码','Switch to 3-digit encoding')]);
+  if(S.enc!=='leg'  && Lm.leg <Lm[S.enc]) tips.push([Lm[S.enc]-Lm.leg,t('换 16 色码（配色会失真）','Switch to 16-color legacy codes (color will shift)')]);
   let astralN=0, combN=0;
   bs.forEach(b=>b.chars.forEach(c=>{
     if(c.codePointAt(0)>0xFFFF) astralN++;
     if(/[̀-ͯ]/.test(c)) combN++;
   }));
-  if(astralN) tips.push([astralN,`${astralN} 个增补平面字符各占 2 格 —— 换成 BMP 花体（小型大写/音节文字/圆圈/西里尔）`]);
-  if(combN)   tips.push([combN,`${combN} 个组合符 —— 换成「预组合」那一档，1 格且贴合`]);
-  if(S.runs.length>1) tips.push([14,`合并段落，每段省 14 格`]);
-  if(S.wrap){const w=WRAPS[S.wrap];tips.push([w[1].length+w[2].length,`去掉包裹「${w[0]}」`]);}
+  if(astralN) tips.push([astralN,t(`${astralN} 个增补平面字符各占 2 格 —— 换成 BMP 花体（小型大写/音节文字/圆圈/西里尔）`,
+    `${astralN} astral-plane character(s) cost 2 slots each — switch to a BMP style (Small Caps/Syllabics/Circled/Cyrillic)`)]);
+  if(combN)   tips.push([combN,t(`${combN} 个组合符 —— 换成「预组合」那一档，1 格且贴合`,
+    `${combN} combining mark(s) — switch to a "Precomposed" style, 1 slot and fits well`)]);
+  if(S.runs.length>1) tips.push([14,t('合并段落，每段省 14 格','Merge segments, saves ~14 per segment')]);
+  if(S.wrap){const w=WRAPS[S.wrap];tips.push([w[1].length+w[2].length,t(`去掉包裹「${w[0]}」`,`Remove the "${w[3]}" wrap`)]);}
   tips.sort((a,b)=>b[0]-a[0]);
-  if(!tips.length) return '<span class="over">只能删字了。</span>';
-  return '<span class="over">还要省 '+need+' 格。</span> '+
-    tips.slice(0,3).map(t=>`省 <b>${t[0]}</b>：${t[1]}`).join(' ｜ ');
+  if(!tips.length) return `<span class="over">${t('只能删字了。','Only cutting characters left.')}</span>`;
+  return `<span class="over">${t(`还要省 ${need} 格。`,`Need to save ${need} more.`)}</span> `+
+    tips.slice(0,3).map(tp=>`${t('省','Save')} <b>${tp[0]}</b>：${tp[1]}`).join(' ｜ ');
 }
 
 function renderRuns(){
@@ -796,22 +819,22 @@ function renderRuns(){
   const w=WRAPS[S.wrap], off=w[1]?1:0;
 
   $('runs').innerHTML=S.runs.map((r,i)=>{
-    const opts=STYLES.map((s2,j)=>`<option value="${j}"${r.st===j?' selected':''}>${s2.n}</option>`).join('');
+    const opts=STYLES.map((s2,j)=>`<option value="${j}"${r.st===j?' selected':''}>${t(s2.n,s2.en)}</option>`).join('');
     return `<div class="rw${S.active===i?' active':''}" data-row="${i}">
       <span class="no" style="color:${st[i+off]||'#888'}">${i+1}</span>
-      <input type="text" data-t="${i}" value="${esc(r.t)}" spellcheck="false" placeholder="这一段的文字">
-      <select data-st="${i}"><option value="">花体：无</option>${opts}</select>
+      <input type="text" data-t="${i}" value="${esc(r.t)}" spellcheck="false" placeholder="${t('这一段的文字','This segment\'s text')}">
+      <select data-st="${i}"><option value="">${t('花体：无','Fancy Text: None')}</option>${opts}</select>
       <span class="fmts">${FKEYS.map(k=>
         `<button class="fmtbtn${r.f[k]?' on':''}" data-f="${i}:${k}" title="&${k}">${k}</button>`).join('')}</span>
-      <button class="swatch" data-fix="${i}" title="定色"
+      <button class="swatch" data-fix="${i}" title="${t('定色','Fixed Color')}"
         style="background:${r.fix?r.fix:'transparent'};${r.fix?'border-color:var(--ember)':''}"></button>
       ${r.fix?`<select data-fixc="${i}" style="flex:0 0 96px;width:96px">${Object.keys(LEGACY).map(k=>
-        `<option value="${LEGACY[k]}"${LEGACY[k]===r.fix?' selected':''}>&amp;${k} ${LEGNAME[k]}</option>`).join('')}</select>`:''}
+        `<option value="${LEGACY[k]}"${LEGACY[k]===r.fix?' selected':''}>&amp;${k} ${t(LEGNAME[k],LEGNAME_EN[k])}</option>`).join('')}</select>`:''}
       <button class="mini fmtbtn${r.mirror?' on':''}" data-mirror="${i}"
-        title="镜像：本段跳出全局连续渐变，自己单独反向跑一遍色标（尾→首）">镜</button>
-      <button class="mini" data-up="${i}"${i===0?' disabled':''} title="上移">↑</button>
-      <button class="mini" data-dn="${i}"${i===S.runs.length-1?' disabled':''} title="下移">↓</button>
-      <button class="mini del" data-del="${i}"${S.runs.length<2?' disabled':''} title="删除这一段">×</button>
+        title="${t('镜像：本段跳出全局连续渐变，自己单独反向跑一遍色标（尾→首）','Mirror: this segment breaks out of the shared gradient and runs its own reversed pass (end→start)')}">${t('镜','Mirror')}</button>
+      <button class="mini" data-up="${i}"${i===0?' disabled':''} title="${t('上移','Move up')}">↑</button>
+      <button class="mini" data-dn="${i}"${i===S.runs.length-1?' disabled':''} title="${t('下移','Move down')}">↓</button>
+      <button class="mini del" data-del="${i}"${S.runs.length<2?' disabled':''} title="${t('删除这一段','Delete this segment')}">×</button>
     </div>`;
   }).join('');
 
@@ -867,8 +890,9 @@ function renderStyles(){
       <span class="nm">${name}${badge}</span><span class="pv">${esc(out)}</span></button>`;
   const rank=n=>({e:0,d:1,n:2,i:3,p:4,c:5}[GAME[n]]??6);
   const order=STYLES.map((_,i)=>i).sort((a,b)=>rank(STYLES[a].n)-rank(STYLES[b].n)||a-b);
-  $('styles').innerHTML = card(-1,`原样（段 ${S.active+1}）`,probe,'') +
-    order.map(i=>card(i,STYLES[i].n,apply(STYLES[i],probe),BADGE[GAME[STYLES[i].n]]||'')).join('');
+  $('styles').innerHTML = card(-1,t(`原样（段 ${S.active+1}）`,`As-is (Segment ${S.active+1})`),probe,'') +
+    order.map(i=>card(i,t(STYLES[i].n,STYLES[i].en),apply(STYLES[i],probe),
+      (BADGE[GAME[STYLES[i].n]]||{})[S.lang]||'')).join('');
   $('styles').querySelectorAll('.style').forEach(b=>{
     const i=+b.dataset.i;
     b.onclick=()=>{
@@ -891,14 +915,14 @@ function renderWraps(){
     const d=cost[i]-base;
     return `<button class="wrapopt${S.wrap===i?' active':''}" data-w="${i}">
       ${esc(w[1])}<span style="color:var(--ink-faint)">text</span>${esc(w[2])}
-      <small>${w[0]}${d?` · +${d} 格（含标签）`:''}</small></button>`;
+      <small>${t(w[0],w[3])}${d?` · +${d} ${t('格（含标签）','chars (incl. tags)')}`:''}</small></button>`;
   }).join('');
   $('wraps').querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>{
     S.wrap=+b.dataset.w; render();});
 }
 function renderSyms(){
   $('symcats').innerHTML=Object.keys(SYMS).map(k=>
-    `<button class="${k===S.cat?'on':''}" data-k="${esc(k)}">${k}</button>`).join('');
+    `<button class="${k===S.cat?'on':''}" data-k="${esc(k)}">${esc(t(k,SYM_CAT_EN[k]||k))}</button>`).join('');
   $('symcats').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.cat=b.dataset.k;renderSyms();});
   $('symgrid').innerHTML=[...SYMS[S.cat]].map(c=>`<button data-c="${esc(c)}">${esc(c)}</button>`).join('');
   $('symgrid').querySelectorAll('button').forEach(b=>b.onclick=()=>{
@@ -912,7 +936,9 @@ function renderSyms(){
     window.scrollTo(0,y);
     renderStyles(); render();
   });
-  $('symnote').innerHTML=SYMNOTE[S.cat]||`点一下插到<b>段 ${S.active+1}</b>的光标位置。`;
+  const note = S.lang==='zh' ? SYMNOTE[S.cat] : SYMNOTE_EN[S.cat];
+  $('symnote').innerHTML=note||t(`点一下插到<b>段 ${S.active+1}</b>的光标位置。`,
+    `Click one to insert at the cursor in <b>Segment ${S.active+1}</b>.`);
 }
 /* ── 取色器：HSV 方块 + 色相条，指针拖动 ── */
 function hex2hsv(hex){
@@ -924,14 +950,18 @@ function hex2hsv(hex){
 }
 function hsv2hex({h:hh,s,v}){
   const c=v*s, x=c*(1-Math.abs((hh/60)%2-1)), m=v-c, i=Math.floor(hh/60)%6;
-  const t=[[c,x,0],[x,c,0],[0,c,x],[0,x,c],[x,0,c],[c,0,x]][i];
-  return rgb2hex(t.map(u=>(u+m)*255));
+  const rgb=[[c,x,0],[x,c,0],[0,c,x],[0,x,c],[x,0,c],[c,0,x]][i];
+  return rgb2hex(rgb.map(u=>(u+m)*255));
 }
-const STOPLABEL={2:['起','尾'],3:['起','中','尾'],4:['起','中1','中2','尾']};
+/* zh/en 两套都存好，取的时候按 S.lang 挑，不能在这里就地调 t() ——
+   这是模块加载时只跑一次的常量，语言切换后不会重新求值，会卡在启动时的语言上。 */
+const STOPLABEL={2:{zh:['起','尾'],en:['Start','End']},
+ 3:{zh:['起','中','尾'],en:['Start','Mid','End']},
+ 4:{zh:['起','中1','中2','尾'],en:['Start','Mid 1','Mid 2','End']}};
 const STOPIDX={2:[0,3],3:[0,1,3],4:[0,1,2,3]};
 
 function renderStops(){
-  const idxs=STOPIDX[S.nStops], labels=STOPLABEL[S.nStops];
+  const idxs=STOPIDX[S.nStops], labels=STOPLABEL[S.nStops][S.lang];
   if(!idxs.includes(S.pk)) S.pk=idxs[0];
   $('chips').innerHTML=idxs.map((si,n)=>
     `<button class="chip${S.pk===si?' active':''}" data-pk="${si}">
@@ -953,8 +983,8 @@ function syncPicker(){
   $('pkHex').value=hex;
   const eff=effective(hex);
   $('pkEff').innerHTML = eff.toLowerCase()===hex.toLowerCase()
-    ? `实际 <span style="color:${eff}">${eff.toUpperCase()}</span>（无损）`
-    : `实际 <span style="color:${eff}">${eff.toUpperCase()}</span>`;
+    ? `${t('实际','Actual')} <span style="color:${eff}">${eff.toUpperCase()}</span>${t('（无损）',' (lossless)')}`
+    : `${t('实际','Actual')} <span style="color:${eff}">${eff.toUpperCase()}</span>`;
   $('chips').querySelectorAll('[data-pk]').forEach(b=>{
     b.querySelector('i').style.background=effective(S.stops[+b.dataset.pk]);});
 }
@@ -984,7 +1014,7 @@ function renderCuts(){
   if(!need) return;
   const b=bounds(total);
   $('cutWrap').innerHTML=S.cuts.map((c,i)=>
-    `<label class="f">断点 ${i+1}（第 <b>${c}</b> 个字符之后）</label>
+    `<label class="f">${t(`断点 ${i+1}（第 <b>${c}</b> 个字符之后）`,`Breakpoint ${i+1} (after character <b>${c}</b>)`)}</label>
      <input type="range" data-cut="${i}" min="1" max="${Math.max(1,total-1)}" value="${c}" style="width:100%">`).join('');
   $('cutWrap').querySelectorAll('[data-cut]').forEach(el=>el.oninput=()=>{
     const i=+el.dataset.cut; S.cuts[i]=+el.value;
@@ -995,23 +1025,23 @@ function renderCuts(){
 
 /* ═══════════════ 配色预设 ═══════════════ */
 const GRADS=[
- ['Takodachi（实测复刻）','#f37c52','#5555ff','#2f5b8b'],
- ['Korone（实测复刻）','#a55d35','#5555ff','#2b547e'],
- ["THAT'S NOT MY EAR（三段）",'#e56e94','#5555ff','#65008f'],
- ['PEKO❤VIVI（实测复刻）','#5555ff','#5555ff','#ff55ff'],
- ['cottagecrisps（实测复刻）','#bbddff','#cc77bb','#ccffff'],
- ['熔岩','#ffe066','#ff8c1a','#c92a2a'],
- ['深海','#a5f3ff','#2f80ed','#12306b'],
- ['毒沼','#d8ff5c','#4caf50','#1b5e20'],
- ['虚空','#c77dff','#7b2cbf','#240046'],
- ['末影','#55ffff','#5555ff','#aa00aa'],
- ['骨白','#ffffff','#c9c1d6','#6b5f7a'],
- ['锈铁','#e0b088','#8b5a3c','#3b2418'],
+ ['Takodachi（实测复刻）','Takodachi (verified recreation)','#f37c52','#5555ff','#2f5b8b'],
+ ['Korone（实测复刻）','Korone (verified recreation)','#a55d35','#5555ff','#2b547e'],
+ ["THAT'S NOT MY EAR（三段）","THAT'S NOT MY EAR (3-segment)",'#e56e94','#5555ff','#65008f'],
+ ['PEKO❤VIVI（实测复刻）','PEKO❤VIVI (verified recreation)','#5555ff','#5555ff','#ff55ff'],
+ ['cottagecrisps（实测复刻）','cottagecrisps (verified recreation)','#bbddff','#cc77bb','#ccffff'],
+ ['熔岩','Lava','#ffe066','#ff8c1a','#c92a2a'],
+ ['深海','Deep Sea','#a5f3ff','#2f80ed','#12306b'],
+ ['毒沼','Toxic Swamp','#d8ff5c','#4caf50','#1b5e20'],
+ ['虚空','Void','#c77dff','#7b2cbf','#240046'],
+ ['末影','Ender','#55ffff','#5555ff','#aa00aa'],
+ ['骨白','Bone White','#ffffff','#c9c1d6','#6b5f7a'],
+ ['锈铁','Rusted Iron','#e0b088','#8b5a3c','#3b2418'],
 ];
 
 /* ═══════════════ 事件 ═══════════════ */
-function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),1300);}
+function toast(m){const box=$('toast');box.textContent=m;box.classList.add('show');
+  setTimeout(()=>box.classList.remove('show'),1300);}
 function copy(s,m){navigator.clipboard.writeText(s).then(()=>toast(m),()=>{
   const ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);
   ta.select();document.execCommand('copy');ta.remove();toast(m);});}
@@ -1019,10 +1049,10 @@ function copy(s,m){navigator.clipboard.writeText(s).then(()=>toast(m),()=>{
 $('addRun').onclick=addRun;
 $('dockToggle').onclick=()=>{
   const c=$('dock').classList.toggle('collapsed');
-  $('dockToggle').textContent=c?'展开段落':'收起段落';
+  $('dockToggle').textContent=c?t('展开段落','Expand Segments'):t('收起段落','Collapse Segments');
   $('dockToggle').classList.toggle('on',c);};
 $('fontToggle').onclick=()=>{S.pixel=!S.pixel;
-  $('fontToggle').textContent='字形：'+(S.pixel?'像素':'系统');
+  $('fontToggle').textContent=t('字形：','Glyphs: ')+(S.pixel?t('像素','Pixel'):t('系统','System'));
   $('fontToggle').classList.toggle('on',S.pixel);render();};
 $('loreToggle').onclick=()=>{S.lore=!S.lore;$('loreToggle').classList.toggle('on',S.lore);render();};
 
@@ -1042,16 +1072,19 @@ $('enc3').onclick=()=>setEnc('hex3');
 $('enc6').onclick=()=>setEnc('hex6');
 $('encL').onclick=()=>setEnc('leg');
 
-$('presetGrad').innerHTML='<option value="">— 配色预设 —</option>'+
-  GRADS.map((g,i)=>`<option value="${i}">${g[0]}</option>`).join('');
+function renderGradPresetOptions(){
+  $('presetGrad').innerHTML=`<option value="">${t('— 配色预设 —','— Color Presets —')}</option>`+
+    GRADS.map((g,i)=>`<option value="${i}">${t(g[0],g[1])}</option>`).join('');
+}
+renderGradPresetOptions();
 $('presetGrad').onchange=e=>{
   if(e.target.value==='')return;
   const g=GRADS[+e.target.value];
-  S.stops=[g[1], g[2], lerp(g[2],g[3],0.5), g[3]];
+  S.stops=[g[2], g[3], lerp(g[3],g[4],0.5), g[4]];
   renderStops(); render();};
 
-$('bCopy').onclick=()=>copy(codeOut(),'代码已复制');
-$('bCopyPlain').onclick=()=>copy(plainText(),'文字已复制');
+$('bCopy').onclick=()=>copy(codeOut(),t('代码已复制','Code copied'));
+$('bCopyPlain').onclick=()=>copy(plainText(),t('文字已复制','Text copied'));
 
 function showProbe(which){
   const box=$('probeOut'), body = which==='e' ? probeEmoji() : probeStyles();
@@ -1059,7 +1092,8 @@ function showProbe(which){
   if(same){ box.style.display='none'; box.dataset.kind=''; }
   else{
     box.style.display='block'; box.dataset.kind=which; box.textContent=body;
-    copy(body, `已复制（${body.length} 字符，${body.split('\n').length} 行）— 贴进成书后截图`);
+    copy(body, t(`已复制（${body.length} 字符，${body.split('\n').length} 行）— 贴进成书后截图`,
+      `Copied (${body.length} chars, ${body.split('\n').length} lines) — paste into a written book and screenshot`));
   }
   const open=box.style.display==='block';
   $('bProbe').classList.toggle('on', open && box.dataset.kind==='s');
@@ -1087,19 +1121,39 @@ function savePresets(){ PERSIST=store.set(PKEY, JSON.stringify(S.presets)); }
 
 function snap(){return JSON.parse(JSON.stringify({runs:S.runs,wrap:S.wrap,
   nStops:S.nStops,cuts:S.cuts,stops:S.stops,enc:S.enc}));}
+/* 勾选状态是纯 UI 态，不进 S、不落盘——存进去的话预设 JSON 里就会带一堆跟内容无关的
+   勾选标记，导出给别人看着莫名其妙。新增预设默认勾上（复刻"导出全部"原来的省心效果），
+   删除时要跟着 splice，不能只掐长度，不然勾选会错位到别的预设上。 */
+let PRESET_SEL=[];
+function ensurePresetSel(){ while(PRESET_SEL.length<S.presets.length) PRESET_SEL.push(true);
+  PRESET_SEL.length=S.presets.length; }
 function renderPresets(){
   const n=$('presetNote');
   if(n) n.innerHTML = PERSIST
-    ? '预设已保存在这个浏览器里，关掉页面也不会丢。换设备或换浏览器时用「导出」搬。'
-    : '当前环境禁用了浏览器存储（Claude artifact 里就是这样），预设只在本次有效 —— 用「导出」把 JSON 存进 txt。';
-  if(!S.presets.length){$('presetList').textContent='还没有预设。';return;}
+    ? t('预设已保存在这个浏览器里，关掉页面也不会丢。换设备或换浏览器时用「导出」搬。',
+        'Presets are saved in this browser and survive closing the page. Use "Export" to move them to another device/browser.')
+    : t('当前环境禁用了浏览器存储（Claude artifact 里就是这样），预设只在本次有效 —— 用「导出」把 JSON 存进 txt。',
+        'Browser storage is disabled here (this happens inside Claude artifacts) — presets only last this session. Use "Export" to save the JSON into a txt file.');
+  ensurePresetSel();
+  const selN=PRESET_SEL.filter(Boolean).length;
+  const selAllBtn=$('bSelAll');
+  if(selAllBtn){ const allSel=S.presets.length>0 && selN===S.presets.length;
+    selAllBtn.textContent = allSel?t('全不选','Select None'):t('全选','Select All');
+    selAllBtn.disabled = !S.presets.length; }
+  const expSelBtn=$('bExportSel');
+  if(expSelBtn){ expSelBtn.textContent=t(`导出所选（${selN}）`,`Export Selected (${selN})`);
+    expSelBtn.disabled = selN===0; }
+  if(!S.presets.length){$('presetList').textContent=t('还没有预设。','No presets yet.');return;}
   $('presetList').innerHTML=S.presets.map((p,i)=>{
-    const label=(p.runs||[]).map(r=>r.t).join('') || '(空)';
+    const label=(p.runs||[]).map(r=>r.t).join('') || t('(空)','(empty)');
     return `<div class="row" style="margin-bottom:5px">
+      <input type="checkbox" data-sel="${i}"${PRESET_SEL[i]?' checked':''}>
       <span style="font-family:ui-monospace,Consolas,monospace;color:var(--ink-dim)">${esc(label)}</span>
       <span class="grow"></span>
-      <button data-load="${i}">载入</button><button data-del="${i}">删</button></div>`;
+      <button data-load="${i}">${t('载入','Load')}</button><button data-del="${i}">${t('删','Delete')}</button></div>`;
   }).join('');
+  $('presetList').querySelectorAll('[data-sel]').forEach(el=>el.onchange=()=>{
+    PRESET_SEL[+el.dataset.sel]=el.checked; renderPresets();});
   $('presetList').querySelectorAll('[data-load]').forEach(b=>b.onclick=()=>{
     Object.assign(S,JSON.parse(JSON.stringify(S.presets[+b.dataset.load])));
     if(!S.runs||!S.runs.length) S.runs=[newRun('')];
@@ -1111,18 +1165,27 @@ function renderPresets(){
     [2,3,4].forEach(k=>$('mode'+k).classList.toggle('on',k===S.nStops));
     setEnc(S.enc||'hex3'); renderRuns(); renderStops(); render();});
   $('presetList').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
-    S.presets.splice(+b.dataset.del,1);savePresets();renderPresets();});
+    const i=+b.dataset.del; S.presets.splice(i,1); PRESET_SEL.splice(i,1);
+    savePresets();renderPresets();});
 }
-$('bSave').onclick=()=>{S.presets.push(snap());savePresets();renderPresets();
-  toast(PERSIST?'已存为预设（已落盘）':'已存为预设（本次有效，记得导出）');};
+$('bSave').onclick=()=>{S.presets.push(snap()); PRESET_SEL.push(true); savePresets();renderPresets();
+  toast(PERSIST?t('已存为预设（已落盘）','Saved as preset (persisted)'):t('已存为预设（本次有效，记得导出）','Saved as preset (this session only — remember to export)'));};
+$('bSelAll').onclick=()=>{ ensurePresetSel();
+  const allSel=S.presets.length>0 && PRESET_SEL.every(Boolean);
+  PRESET_SEL=PRESET_SEL.map(()=>!allSel); renderPresets();};
+$('bExportSel').onclick=()=>{
+  const chosen=S.presets.filter((_,i)=>PRESET_SEL[i]);
+  if(!chosen.length){ toast(t('先勾选要导出的预设','Check the presets to export first')); return; }
+  const b=$('ioBox');b.style.display='';b.value=JSON.stringify(chosen);
+  copy(b.value, t(`已导出所选 ${chosen.length} 条`,`Exported ${chosen.length} selected`));};
 $('bExport').onclick=()=>{const b=$('ioBox');b.style.display='';b.value=JSON.stringify(S.presets);
-  copy(b.value,'JSON 已复制 — 存进 txt 文件');};
+  copy(b.value,t('JSON 已复制 — 存进 txt 文件','JSON copied — save it into a txt file'));};
 $('bImport').onclick=()=>{const b=$('ioBox');
   if(b.style.display==='none'||!b.value.trim()){b.style.display='';b.value='';b.focus();
-    toast('把 JSON 贴进下面再点一次');return;}
+    toast(t('把 JSON 贴进下面再点一次','Paste the JSON below and click again'));return;}
   try{const a=JSON.parse(b.value);
-    if(Array.isArray(a)){S.presets=a;savePresets();renderPresets();toast('导入 '+a.length+' 条');}}
-  catch(e){toast('JSON 格式不对');}};
+    if(Array.isArray(a)){S.presets=a;savePresets();renderPresets();toast(t('导入 ','Imported ')+a.length+t(' 条',' item(s)'));}}
+  catch(e){toast(t('JSON 格式不对','Invalid JSON'));}};
 
 /* &k 混淆：MC 里是不断跳字的，预览也跳 */
 if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -1374,7 +1437,8 @@ function drawSource(){
     else R.style.display='none';
   }
   if($('selInfo')) $('selInfo').textContent = cr
-    ? `已框选 ${cr.w}×${cr.h}px（原图 ${w}×${SHOT.hh}）` : '当前用整张图';
+    ? t(`已框选 ${cr.w}×${cr.h}px（原图 ${w}×${SHOT.hh}）`,`Selected ${cr.w}×${cr.h}px (original ${w}×${SHOT.hh})`)
+    : t('当前用整张图','Currently using the whole image');
   [1,2,4].forEach(z=>$('z'+z).classList.toggle('on',ZOOM===z));
 }
 
@@ -1535,9 +1599,9 @@ function renderShotStyles(){
   const box=$('shotSt'); if(!box) return;
   const src=S.shotText||'Takodachi';
   box.innerHTML=`<button class="stchip${S.shotStyle===null?' on':''}" data-ss="-1">${
-      esc(src)}<small>原样</small></button>`+
+      esc(src)}<small>${t('原样','As-is')}</small></button>`+
     STYLES.map((st,i)=>`<button class="stchip${S.shotStyle===i?' on':''}" data-ss="${i}">${
-      esc(apply(st,src))}<small>${st.n}</small></button>`).join('');
+      esc(apply(st,src))}<small>${t(st.n,st.en)}</small></button>`).join('');
   box.querySelectorAll('[data-ss]').forEach(b=>b.onclick=()=>{
     const i=+b.dataset.ss; S.shotStyle = i<0?null:i;
     renderShotStyles(); renderShotCode(); renderRepro();});
@@ -1549,10 +1613,11 @@ function renderShotCode(){
   const code=box.value;
   const over=code.length>S.cap, dirty=S.shotEdit!==null;
   $('shotMeter').innerHTML = code
-    ? `<span>长度 <b class="${over?'over':''}">${code.length}</b> / ${S.cap}
-         <span class="${over?'over':'ok'}">${over?'超出 '+(code.length-S.cap):'放得下'}</span></span>
-       ${dirty?`<span style="color:var(--mc-gold)">已手动编辑 —— 改文字或配色不会覆盖你的修改，要回到自动生成请点「重新生成」</span>`:''}`
-    : `<span>在上面填入文字后这里会生成代码。</span>`;
+    ? `<span>${t('长度','Length')} <b class="${over?'over':''}">${code.length}</b> / ${S.cap}
+         <span class="${over?'over':'ok'}">${over?t('超出 ','Over by ')+(code.length-S.cap):t('放得下','Fits')}</span></span>
+       ${dirty?`<span style="color:var(--mc-gold)">${t('已手动编辑 —— 改文字或配色不会覆盖你的修改，要回到自动生成请点「重新生成」',
+         'Manually edited — changing the text or colors won\'t overwrite your edit; click "Regenerate" to go back to auto-generated')}</span>`:''}`
+    : `<span>${t('在上面填入文字后这里会生成代码。','Fill in the text above and the code will appear here.')}</span>`;
   const b=$('shotCopy'); if(b) b.disabled=!code;
   renderRepro();
 }
@@ -1561,30 +1626,30 @@ function renderShotCode(){
    改的是 S.shotCustom 那份独立拷贝，原始拟合结果不会丢，两边随时能对比。 */
 function fitRowHTML(n, fit, bestN){
   return `<div class="fitrow" data-row="${n}">
-    <b style="min-width:34px">${n} 色</b>
-    ${n===bestN?'<span class="rec">推荐</span>':''}
+    <b style="min-width:34px">${n} ${t('色','Colors')}</b>
+    ${n===bestN?`<span class="rec">${t('推荐','Recommended')}</span>`:''}
     <span class="bar">${fit.stops.map(s2=>`<div style="background:${s2}"></div>`).join('')}</span>
     <span style="font-family:ui-monospace,Consolas,monospace;font-size:11px">
       ${fit.stops.map(s2=>s2.slice(1).toUpperCase()).join(' → ')}</span>
     <b style="color:${fit.match>=97?'#4fae6b':fit.match>=90?'var(--mc-gold)':'var(--mc-red)'}">
       ${fit.match.toFixed(1)}%</b>
-    <button data-pick="${n}">选这个</button>
-    <button class="mini" data-seed="${n}" title="拿这个当起点，改成我自己的配色">套用微调</button>
+    <button data-pick="${n}">${t('选这个','Select')}</button>
+    <button class="mini" data-seed="${n}" title="${t('拿这个当起点，改成我自己的配色','Use this as a starting point for My Colors')}">${t('套用微调','Apply & Tweak')}</button>
   </div>`;
 }
 function customRowHTML(){
   const cc=S.shotCustom;
   if(!cc) return `<div class="fitrow" data-row="custom">
-    <b style="min-width:60px">我的配色</b>
-    <span style="color:var(--ink-faint);font-size:12px">还没有——点上面某一行的「套用微调」开始</span>
+    <b style="min-width:60px">${t('我的配色','My Colors')}</b>
+    <span style="color:var(--ink-faint);font-size:12px">${t('还没有——点上面某一行的「套用微调」开始','None yet — click "Apply & Tweak" on a row above to start')}</span>
   </div>`;
   const st=activeCustomStops();
   return `<div class="fitrow" data-row="custom">
-    <b style="min-width:60px">我的配色</b>
+    <b style="min-width:60px">${t('我的配色','My Colors')}</b>
     <span class="bar">${st.map(s2=>`<div style="background:${s2}"></div>`).join('')}</span>
     <span style="font-family:ui-monospace,Consolas,monospace;font-size:11px">
       ${st.map(s2=>s2.slice(1).toUpperCase()).join(' → ')}</span>
-    <button data-pick="custom">选这个</button>
+    <button data-pick="custom">${t('选这个','Select')}</button>
   </div>`;
 }
 function renderFitsList(){
@@ -1600,7 +1665,7 @@ function bindFitPicks(){
     const rv=el.dataset.row, on = rv==='custom' ? S.shotFit==='custom' : +rv===S.shotFit;
     el.classList.toggle('sel',on);
     const b=el.querySelector('[data-pick]');
-    if(b){ b.textContent=on?'✓ 已选':'选这个'; b.classList.toggle('on',on); }
+    if(b){ b.textContent=on?t('✓ 已选','✓ Selected'):t('选这个','Select'); b.classList.toggle('on',on); }
   });
   $('shotOut').querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{
     const v=b.dataset.pick; S.shotFit = v==='custom' ? 'custom' : +v;
@@ -1609,13 +1674,13 @@ function bindFitPicks(){
     const n=+b.dataset.seed, fo=SHOT.fits.find(o=>o.n===n); if(!fo) return;
     seedCustomFrom(n, fo.fit); S.shotFit='custom'; S.shotPk=0;
     renderFitsList(); renderShotEditor(); renderCustomCuts(); renderShotCode();
-    toast(`已套用 ${n} 色作为起点，可以开始微调`);
+    toast(t(`已套用 ${n} 色作为起点，可以开始微调`,`Applied the ${n}-color result as a starting point — start tweaking`));
   });
   markPick();
 }
 function renderShotEditor(){
   const cc=S.shotCustom; if(!cc||!$('shotChips')) return;
-  const idxs=STOPIDX[cc.nStops], labels=STOPLABEL[cc.nStops];
+  const idxs=STOPIDX[cc.nStops], labels=STOPLABEL[cc.nStops][S.lang];
   if(!idxs.includes(S.shotPk)) S.shotPk=idxs[0];
   [2,3,4].forEach(k=>{ const b=$('scMode'+k); if(b) b.classList.toggle('on',cc.nStops===k); });
   $('shotChips').innerHTML=idxs.map((si,i)=>
@@ -1638,8 +1703,8 @@ function syncShotPicker(){
   $('pkHexShot').value=hex;
   const eff=effective(hex);
   $('pkEffShot').innerHTML = eff.toLowerCase()===hex.toLowerCase()
-    ? `实际 <span style="color:${eff}">${eff.toUpperCase()}</span>（无损）`
-    : `实际 <span style="color:${eff}">${eff.toUpperCase()}</span>`;
+    ? `${t('实际','Actual')} <span style="color:${eff}">${eff.toUpperCase()}</span>${t('（无损）',' (lossless)')}`
+    : `${t('实际','Actual')} <span style="color:${eff}">${eff.toUpperCase()}</span>`;
   $('shotChips').querySelectorAll('[data-spk]').forEach(b=>{
     b.querySelector('i').style.background=effective(cc.stops[+b.dataset.spk]);});
 }
@@ -1665,7 +1730,7 @@ function renderCustomCuts(){
   if(!cc||!need||!total) return;
   const b=customBounds(total);
   box.innerHTML=cc.cuts.map((c,i)=>
-    `<label class="f">断点 ${i+1}（第 <b>${c}</b> 个字符之后）</label>
+    `<label class="f">${t(`断点 ${i+1}（第 <b>${c}</b> 个字符之后）`,`Breakpoint ${i+1} (after character <b>${c}</b>)`)}</label>
      <input type="range" data-ccut="${i}" min="1" max="${Math.max(1,total-1)}" value="${c}" style="width:100%">`).join('');
   box.querySelectorAll('[data-ccut]').forEach(el=>el.oninput=()=>{
     const i=+el.dataset.ccut; cc.cuts[i]=+el.value;
@@ -1680,7 +1745,8 @@ function renderShot(res, img){
   SHOT={img: img||(SHOT&&SHOT.img), w:res.w, hh:res.hh,
         glyphs:res.glyphs, spans:res.spans, fits:null};
   if(!glyphs.length){
-    $('shotOut').innerHTML='<div class="note over">没找到文字像素 —— 背景可能和文字太接近，换一张对比明显的截图。</div>';
+    $('shotOut').innerHTML=`<div class="note over">${t('没找到文字像素 —— 背景可能和文字太接近，换一张对比明显的截图。',
+      'No text pixels found — the background might be too close to the text color. Try a screenshot with more contrast.')}</div>`;
     return;
   }
   const fits=[2,3,4].map(n=>({n, fit:fitStops(glyphs,n)})).filter(o=>o.fit);
@@ -1693,42 +1759,49 @@ function renderShot(res, img){
   SHOT.fits=fits;
   $('shotOut').innerHTML=`
     <div class="zoombar">
-      <span>你粘贴的原图</span>
+      <span>${t('你粘贴的原图','Your pasted image')}</span>
       <button id="z1">1×</button><button id="z2">2×</button><button id="z4">4×</button>
       <span>${res.w}×${res.hh}px</span>
       <span class="grow" style="flex:1"></span>
-      <button id="eyedrop">取色笔</button>
-      <button id="reshot">换一张</button>
+      <button id="eyedrop">${t('取色笔','Eyedropper')}</button>
+      <button id="reshot">${t('换一张','Change Image')}</button>
     </div>
     <div class="srcwrap"><canvas id="srcCanvas"></canvas>
       <div class="selrect" id="selRect"></div>
       <div class="swstrip" id="swStrip"></div></div>
     <div class="zoombar" id="eyedropBar" style="display:none;margin-top:4px">
-      <span>取色笔开着——把鼠标移到图上看颜色，点一下会写进「我的配色」当前选中的色标</span>
+      <span>${t('取色笔开着——把鼠标移到图上看颜色，点一下会写进「我的配色」当前选中的色标',
+        'Eyedropper is on — move the mouse over the image to see the color, click to write it into the selected "My Colors" stop')}</span>
       <span class="chip" id="eyedropReadout" style="cursor:default"><i style="background:#888"></i>—</span>
     </div>
     <div class="zoombar" style="margin-top:4px">
-      <span><b>在图上拖一个框</b>选出要取色的那一行</span>
-      <button id="selAll">用整张图</button>
+      <span>${t('<b>在图上拖一个框</b>选出要取色的那一行','<b>Drag a box on the image</b> to select the line to sample')}</span>
+      <button id="selAll">${t('用整张图','Use whole image')}</button>
       <span id="selInfo"></span>
     </div>
-    <div class="note">整张 tooltip 截图里名字、附魔、lore 全是文字，自动分行在有 GUI 背景时不可靠 —— 框选最准。
-      色带是识别出的每个色阶，按列位置对齐在图下面，可以逐个核对有没有错切。
-      拿不准这张图适不适合自动拟合的话，用上面的「取色笔」直接点图取真实颜色，不用等它拟合。</div>
+    <div class="note">${t('整张 tooltip 截图里名字、附魔、lore 全是文字，自动分行在有 GUI 背景时不可靠 —— 框选最准。',
+        'A full tooltip screenshot has the name, enchants, and lore all as text — auto row-detection is unreliable with a GUI background, so a manual selection is most accurate.')}
+      ${t('色带是识别出的每个色阶，按列位置对齐在图下面，可以逐个核对有没有错切。',
+        'The color strip shows each detected color stop aligned by column under the image, so you can check for mis-cuts one by one.')}
+      ${t('拿不准这张图适不适合自动拟合的话，用上面的「取色笔」直接点图取真实颜色，不用等它拟合。',
+        'Not sure this image is a good fit for auto-fitting? Use the "Eyedropper" above to sample real colors directly, no need to wait for the fit.')}</div>
     <div class="note" style="margin-top:10px">
-      缩放倍率 <b>${scale}×</b>
-      ｜ 背景 <span style="color:${bg}">${bg.toUpperCase()}</span>
-      ｜ 取到 <b>${glyphs.length}</b> 个色阶${
-        res.dropped||res.trimmed?`（剔除 ${res.dropped} 阴影${res.trimmed?` + ${res.trimmed} 端点杂色`:''}）`:''}
+      ${t('缩放倍率','Scale')} <b>${scale}×</b>
+      ｜ ${t('背景','Background')} <span style="color:${bg}">${bg.toUpperCase()}</span>
+      ｜ ${t('取到','Found')} <b>${glyphs.length}</b> ${t('个色阶','color stop(s)')}${
+        res.dropped||res.trimmed?t(`（剔除 ${res.dropped} 阴影${res.trimmed?` + ${res.trimmed} 端点杂色`:''}）`,
+          ` (dropped ${res.dropped} shadow${res.trimmed?` + ${res.trimmed} edge outlier(s)`:''})`):''}
     </div>
     <div style="margin-top:8px" id="fitsList"></div>
     <div class="panel" style="margin-top:12px;background:var(--void)">
-      <label class="f">我的配色 —— 在上面某一行点「套用微调」拿它当起点，或直接在这里改
-        <span style="color:var(--ink-faint)">（定色符号比如爱心会把自动拟合带偏，这里改成真实颜色，不会动上面几行的原始结果）</span></label>
+      <label class="f">${t('我的配色 —— 在上面某一行点「套用微调」拿它当起点，或直接在这里改',
+        'My Colors — click "Apply & Tweak" on a row above to use it as a starting point, or edit directly here')}
+        <span style="color:var(--ink-faint)">${t('（定色符号比如爱心会把自动拟合带偏，这里改成真实颜色，不会动上面几行的原始结果）',
+          '(fixed-color symbols like a heart can throw off the auto-fit — change it to the real color here, without touching the original results above)')}</span></label>
       <div class="row" style="margin:2px 0 10px">
-        <button class="mini" id="scMode2">2 色</button>
-        <button class="mini" id="scMode3">3 色</button>
-        <button class="mini" id="scMode4">4 色</button>
+        <button class="mini" id="scMode2">2 ${t('色','Colors')}</button>
+        <button class="mini" id="scMode3">3 ${t('色','Colors')}</button>
+        <button class="mini" id="scMode4">4 ${t('色','Colors')}</button>
       </div>
       <div class="chips" id="shotChips"></div>
       <div class="picker">
@@ -1741,34 +1814,37 @@ function renderShot(res, img){
       </div>
       <div id="customCutWrap" style="display:none;margin-top:12px"></div>
     </div>
-    <div class="zoombar" style="margin-bottom:2px;margin-top:12px"><span>复刻效果（下面填了文字才有）</span></div>
+    <div class="zoombar" style="margin-bottom:2px;margin-top:12px"><span>${t('复刻效果（下面填了文字才有）','Recreated Result (needs text filled in below)')}</span></div>
     <div class="repro" id="repro"></div>
     <div class="panel" style="margin-top:12px;background:var(--void)">
-      <label class="f">文字内容 —— 逆推认不出字符，这里手填（我看截图告诉你，或你自己照着打）</label>
+      <label class="f">${t('文字内容 —— 逆推认不出字符，这里手填（我看截图告诉你，或你自己照着打）',
+        'Text Content — Extract can\'t recognize characters, type it in here (I\'ll read the screenshot and tell you, or type it yourself)')}</label>
       <input type="text" id="shotTxt" spellcheck="false"
-        value="${esc(S.shotText)}" placeholder="例：squishy 🐱 zeta">
+        value="${esc(S.shotText)}" placeholder="${t('例：squishy 🐱 zeta','e.g. squishy 🐱 zeta')}">
       <div class="row" style="margin-top:8px">
-        <label class="f" style="margin:0">整段格式</label>
+        <label class="f" style="margin:0">${t('整段格式','Formatting for whole text')}</label>
         ${FKEYS.map(k=>`<button class="fmtbtn${S.shotFmt[k]?' on':''}" data-sf="${k}">&amp;${k}</button>`).join('')}
       </div>
-      <label class="f" style="margin-top:9px">花体（每个都直接显示效果，点一下就换）</label>
+      <label class="f" style="margin-top:9px">${t('花体（每个都直接显示效果，点一下就换）','Fancy Text (each shows its effect live, click to switch)')}</label>
       <div class="stchips" id="shotSt"></div>
-      <label class="f" style="margin-top:9px">完整代码 —— <b>可以直接改</b>，上面的复刻预览会跟着变</label>
+      <label class="f" style="margin-top:9px">${t('完整代码 —— <b>可以直接改</b>，上面的复刻预览会跟着变','Full Code — <b>editable directly</b>, the recreated preview above updates as you type')}</label>
       <textarea id="shotCode" spellcheck="false"
         style="font-family:ui-monospace,Consolas,monospace;font-size:13px;min-height:52px"></textarea>
       <div class="meter" id="shotMeter"></div>
       <div class="row" style="margin-top:9px">
-        <button class="primary" id="shotCopy">复制完整代码</button>
-        <button id="shotRegen">重新生成</button>
-        <button id="shotApply">套用配色去创作</button>
+        <button class="primary" id="shotCopy">${t('复制完整代码','Copy Full Code')}</button>
+        <button id="shotRegen">${t('重新生成','Regenerate')}</button>
+        <button id="shotApply">${t('套用配色去创作','Apply Colors to Create')}</button>
       </div>
     </div>
     ${fits[0].fit.match<90&&bestN&&Math.max(...fits.map(o=>o.fit.match))<90?`<div class="note" style="color:var(--mc-gold)">
-      最佳吻合仍低于 90% —— 这条可能不是单纯的 N 色渐变，而是用了<b>定色段</b>或<b>镜像结构</b>。
-      这种要手动拆段，逆推只能给你逐字色值参考。</div>`:''}
-    <div class="hexlist" style="margin-top:8px">逐字实测：${glyphs.map(c2=>
+      ${t('最佳吻合仍低于 90% —— 这条可能不是单纯的 N 色渐变，而是用了<b>定色段</b>或<b>镜像结构</b>。',
+        'The best fit is still under 90% — this one might not be a simple N-color gradient, it may use a <b>fixed-color segment</b> or a <b>mirrored structure</b>.')}
+      ${t('这种要手动拆段，逆推只能给你逐字色值参考。','That needs to be split manually — Extract can only give you the per-character color values as a reference.')}</div>`:''}
+    <div class="hexlist" style="margin-top:8px">${t('逐字实测','Per-character sample')}：${glyphs.map(c2=>
       `<span style="border-color:${c2}">${c2.slice(1).toUpperCase()}</span>`).join(' ')}</div>
-    <div class="note">还没做：识别文字内容、花体种类、emoji —— 那需要服务器资源包的字体图集。</div>`;
+    <div class="note">${t('还没做：识别文字内容、花体种类、emoji —— 那需要服务器资源包的字体图集。',
+      'Not implemented yet: recognizing text content, fancy-text styles, or emoji — that needs the server\'s resource-pack font atlas.')}</div>`;
   [1,2,4].forEach(z=>$('z'+z).onclick=()=>{ZOOM=z;drawSource();});
   $('selAll').onclick=()=>{S.shotCrop=null; reExtract();};
   const syncEyedropUI=()=>{
@@ -1797,8 +1873,9 @@ function renderShot(res, img){
       if(EYEDROP){
         const hex=pixelHexAt(e); e.preventDefault();
         if(!hex) return;
-        if(S.shotCustom){ setShotStop(hex); toast(`已取色 ${hex.toUpperCase()} → 写入「我的配色」`); }
-        else toast(`取到 ${hex.toUpperCase()}，但还没有「我的配色」——先点某一行的「套用微调」`);
+        if(S.shotCustom){ setShotStop(hex); toast(t(`已取色 ${hex.toUpperCase()} → 写入「我的配色」`,`Sampled ${hex.toUpperCase()} → written to "My Colors"`)); }
+        else toast(t(`取到 ${hex.toUpperCase()}，但还没有「我的配色」——先点某一行的「套用微调」`,
+          `Sampled ${hex.toUpperCase()}, but there's no "My Colors" yet — click "Apply & Tweak" on a row first`));
         return;
       }
       cv.setPointerCapture(e.pointerId);a=pt(e);e.preventDefault();});
@@ -1856,13 +1933,13 @@ function renderShot(res, img){
   $('shotOut').querySelectorAll('[data-sf]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.sf; S.shotFmt[k]=S.shotFmt[k]?0:1;
     b.classList.toggle('on',!!S.shotFmt[k]);
-    if(S.shotEdit!==null) toast('代码已手动编辑，格式键不会覆盖 —— 需要的话点「重新生成」');
+    if(S.shotEdit!==null) toast(t('代码已手动编辑，格式键不会覆盖 —— 需要的话点「重新生成」','Code has been manually edited — format keys won\'t overwrite it; click "Regenerate" if you need to'));
     renderShotCode();});
   // 手改代码后就以用户的版本为准，不再被自动生成覆盖
   $('shotCode').oninput=()=>{S.shotEdit=$('shotCode').value; renderShotCode();};
-  $('shotRegen').onclick=()=>{S.shotEdit=null; renderShotCode(); toast('已回到自动生成');};
+  $('shotRegen').onclick=()=>{S.shotEdit=null; renderShotCode(); toast(t('已回到自动生成','Back to auto-generated'));};
   $('shotCopy').onclick=()=>{const c=liveCode();
-    if(c) copy(c, `已复制（${c.length} 格）`); else toast('先填文字内容');};
+    if(c) copy(c, t(`已复制（${c.length} 格）`,`Copied (${c.length} chars)`)); else toast(t('先填文字内容','Fill in the text first'));};
   $('shotApply').onclick=()=>{
     const act=shotActive(); if(!act) return;
     const n=act.n;
@@ -1875,7 +1952,8 @@ function renderShot(res, img){
       S.runs[0].f={...S.shotFmt}; S.active=0; }
     [2,3,4].forEach(k=>$('mode'+k).classList.toggle('on',k===n));
     renderRuns(); renderStops(); render(); setMode2('C');
-    toast(`已套用 ${n} 色渐变${act.match!=null?`（吻合 ${act.match.toFixed(1)}%）`:''}`);
+    toast(t(`已套用 ${n} 色渐变${act.match!=null?`（吻合 ${act.match.toFixed(1)}%）`:''}`,
+      `Applied ${n}-color gradient${act.match!=null?` (${act.match.toFixed(1)}% match)`:''}`));
   };
   renderShotCode();
   syncEyedropUI();
@@ -1885,9 +1963,9 @@ function loadShot(file){
   if(!file) return;
   const img=new Image(), url=URL.createObjectURL(file);
   img.onload=()=>{ try{ renderShot(extractGlyphs(img), img); }
-    catch(e){ $('shotOut').innerHTML='<div class="note over">读图失败：'+esc(String(e))+'</div>'; }
+    catch(e){ $('shotOut').innerHTML=`<div class="note over">${t('读图失败：','Failed to load image: ')}${esc(String(e))}</div>`; }
     URL.revokeObjectURL(url); };
-  img.onerror=()=>{$('shotOut').innerHTML='<div class="note over">这个文件不是图片。</div>';};
+  img.onerror=()=>{$('shotOut').innerHTML=`<div class="note over">${t('这个文件不是图片。','That file isn\'t an image.')}</div>`;};
   img.src=url;
 }
 function setMode2(m){
@@ -1896,13 +1974,13 @@ function setMode2(m){
   $('viewC').style.display=R?'none':'';
   $('tabR').classList.toggle('on',R);
   $('tabC').classList.toggle('on',!R);
-  $('modeHint').textContent=R?'读别人的标签，取出配色':'做自己的标签';
+  $('modeHint').textContent=R?t('读别人的标签，取出配色','Read someone else\'s tag, extract the colors'):t('做自己的标签','Make your own tag');
   // 逆推跟"创作"预览（顶部 tooltip + lore + 段落编辑）完全无关，整块收起来。
   // 之前只收起 .dockbody（段落行），.tip.tooltip 那块名字/lore 预览没跟着藏，
   // 逆推时还会露出上一次在创作模式编辑的内容，容易看混。
   $('dock').style.display=R?'none':'';
   $('dock').classList.toggle('collapsed',R);
-  $('dockToggle').textContent=R?'展开段落':'收起段落';
+  $('dockToggle').textContent=R?t('展开段落','Expand Segments'):t('收起段落','Collapse Segments');
   if(R&&SHOT) drawSource();
 }
 $('tabC').onclick=()=>setMode2('C');
@@ -1921,10 +1999,93 @@ window.addEventListener('paste',e=>{
   if(it){ setMode2('R'); loadShot(it.getAsFile()); }
 });
 
-auditStyles();
+/* ═══════════════ 双语：静态 HTML 文案 ═══════════════
+   动态生成的文字（render* 系列）在各自函数里就地调 t()；这里只管开局就写死在
+   HTML 里、JS 不会再碰的标签/说明文字。textContent 版给纯文字元素用，
+   innerHTML 版给带 <b>/<span class=badge> 这类内嵌标签的说明用。 */
+const STATIC_I18N=[
+ ['mainTitle','标签锻造台','Tag Forge'],
+ ['headerSub','段落 · 花体 · 符号 · 渐变 · EssentialsX 代码','Segments · Fancy Text · Symbols · Gradient · EssentialsX Code'],
+ ['loreToggle','lore 参照','Lore Preview'],
+ ['addRun','+ 加一段','+ Add Segment'],
+ ['tabC','创作','Create'],
+ ['tabR','逆推','Extract'],
+ ['secStyles','花体 · 作用于当前选中的段','Fancy Text · Applies to the selected segment'],
+ ['bProbe','花体探针（34 种）','Style Probe (34 styles)'],
+ ['bProbeE','emoji 探针（候选 72 个）','Emoji Probe (72 candidates)'],
+ ['secSymbols','符号 · 插入当前选中的段','Symbols · Insert into the selected segment'],
+ ['secWrap','包裹','Wrap'],
+ ['secGradient','渐变','Gradient'],
+ ['mode2','2 色','2 Colors'],
+ ['mode3','3 色','3 Colors'],
+ ['mode4','4 色','4 Colors'],
+ ['secOutput','输出','Output'],
+ ['encLabel','颜色编码','Color Encoding'],
+ ['enc3','3 位 · 4096 色','3-digit · 4096 colors'],
+ ['enc6','6 位 · 1677 万','6-digit · 16.7M colors'],
+ ['encL','色码 · 16 色','Legacy Code · 16 colors'],
+ ['lenLabel','代码长度','Code Length'],
+ ['visLabel','可见字符','Visible Characters'],
+ ['runsLabel','段数','Segments'],
+ ['bCopy','复制代码','Copy Code'],
+ ['bCopyPlain','只复制文字','Copy Text Only'],
+ ['bSave','存为预设','Save as Preset'],
+ ['secPresets','预设','Presets'],
+ ['bExport','导出全部（复制 JSON）','Export All (Copy JSON)'],
+ ['bImport','导入（粘贴 JSON）','Import (Paste JSON)'],
+];
+const STATIC_HTML_I18N=[
+ ['dockNote',
+   `每段可以有自己的花体和格式，渐变默认是全局一条、按字符切给各段。
+    点段落行末的「镜」可以让某一段跳出全局渐变，自己反向跑一遍色标（例如前段红→蓝，镜像的后段就是蓝→红）。
+    花体只改显示，不写回原文。<b>每多一段大约多 12 个字符</b>，看输出栏的长度计。`,
+   `Each segment can have its own fancy text and formatting; the gradient is one shared ramp split across segments by default.
+    Click "Mirror" at the end of a segment row to make that segment break out of the shared gradient and run its own reversed pass (e.g. segment 1 goes red→blue, the mirrored segment 2 goes blue→red).
+    Fancy text only changes the display, not the underlying text. <b>Each extra segment costs about 12 characters</b> — watch the length counter in Output.`],
+ ['dropHint','把截图拖进来，或 <b>Ctrl+V 直接粘贴</b>，或点这里选文件',
+   'Drag a screenshot in, <b>paste with Ctrl+V</b>, or click here to choose a file'],
+ ['dropSub','不需要整数倍原图 —— 取色是缩放无关的','No need for an integer-scale screenshot — color sampling is scale-independent'],
+ ['styleNote',
+   `<span class="badge b-safe">实测可用</span> 游戏内辨识度高；
+    <span class="badge b-dup">近似普通字 / 斜体</span> 能显示，但 8×16 点阵吃掉了字重和衬线差别；
+    鼠标<b>悬停</b>在卡片上，顶部预览会实时套用该花体，移开自动恢复 —— 不用先点选。`,
+   `<span class="badge b-safe">Verified</span> renders clearly in-game;
+    <span class="badge b-dup">Looks like plain/italic</span> still shows, but the 8×16 pixel grid loses weight/serif differences;
+    <b>Hover</b> over a card and the preview applies it live — move away to revert, no need to click first.`],
+ ['wrapNote','包裹加在整条标签的最外层，渐变会流经它。括号里是它吃掉的字符数。',
+   'The wrap sits on the very outside of the whole tag; the gradient flows through it. The number in parentheses is how many characters it costs.'],
+ ['outputNote',
+   `50 是 anvil 改名默认上限，<b>颜色代码一起算</b>，emoji 算 2 格。
+    告示牌按像素宽度限制、昵称看插件配置，上限可改。`,
+   `50 is the anvil rename default limit — <b>color codes count too</b>, and emoji cost 2 slots each.
+    Signs are limited by pixel width, and nicknames depend on plugin config — the cap above is editable.`],
+];
+function applyStaticI18n(){
+  STATIC_I18N.forEach(([id,zh,en])=>{ const el=$(id); if(el) el.textContent=S.lang==='zh'?zh:en; });
+  STATIC_HTML_I18N.forEach(([id,zh,en])=>{ const el=$(id); if(el) el.innerHTML=S.lang==='zh'?zh:en; });
+}
+/* 切换语言 = 重刷所有依赖 S.lang 的东西。静态标签走上面两张表；
+   动态内容（段落行、花体卡片、渐变面板……）本来就是每次 render() 全量重绘，
+   直接把已有的 render 函数群跑一遍即可，不用另外维护一套"更新"逻辑。 */
+function applyLang(){
+  $('langToggle').textContent = S.lang==='zh' ? 'EN' : '中';
+  applyStaticI18n();
+  $('fontToggle').textContent=t('字形：','Glyphs: ')+(S.pixel?t('像素','Pixel'):t('系统','System'));
+  const collapsed=$('dock').classList.contains('collapsed');
+  $('dockToggle').textContent=collapsed?t('展开段落','Expand Segments'):t('收起段落','Collapse Segments');
+  $('modeHint').textContent = $('tabR').classList.contains('on')
+    ? t('读别人的标签，取出配色','Read someone else\'s tag, extract the colors')
+    : t('做自己的标签','Make your own tag');
+  auditStyles();
+  renderGradPresetOptions();
+  renderRuns(); renderStops(); renderSyms(); render(); renderPresets();
+  if(SHOT&&SHOT.img) reExtract();   // 逆推面板整块重建，跟着换语言
+}
+$('langToggle').onclick=()=>{ S.lang = S.lang==='zh' ? 'en' : 'zh'; applyLang(); };
+
 loadPresets(); savePresets();   // savePresets 顺带探测存储可用性
 setMode2('C');
-renderRuns(); renderStops(); renderSyms(); render(); renderPresets();
+applyLang();
 
 /* 页头副标题用用户给的渐变代码上色，跟工具自己的代码解析器（parseCode）复用同一套逻辑。 */
 (function(){
