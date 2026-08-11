@@ -4,12 +4,13 @@ const { install, loadTool } = require('./lib/dom');
 const t = require('./lib/t');
 const dom = install();
 const M = loadTool(['S', 'STYLES', 'newRun', 'codeOut', 'cells', 'blocks',
-                    'renderRuns', 'parseCode', 'plainText', 'WRAPS', 'saveHints', 'lens']);
-const { S, STYLES, newRun, codeOut, parseCode, renderRuns } = M;
+                    'renderRuns', 'parseCode', 'plainText', 'WRAPS', 'saveHints', 'lens',
+                    'liveOutCode', 'render', 'paintPreview']);
+const { S, STYLES, newRun, codeOut, parseCode, renderRuns, liveOutCode, render, paintPreview } = M;
 const idx = (n) => STYLES.findIndex((s) => s.n === n);
 const reset = () => {
   S.runs = [newRun('')]; S.active = 0; S.wrap = 0;
-  S.nStops = 2; S.cuts = []; S.enc = 'hex3';
+  S.nStops = 2; S.cuts = []; S.enc = 'hex3'; S.codeEdit = null;
   S.stops = ['#f37c52', '#8860c6', '#5555ff', '#2f5b8b'];
 };
 const fmt = (o) => ['l', 'o', 'n', 'm', 'k'].filter((k) => o.f && o.f[k]).join('') || '-';
@@ -110,5 +111,40 @@ const code = codeOut();
 t.ok('确实超限', code.length > S.cap, String(code.length));
 const hint = M.saveHints(code.length - S.cap, M.lens());
 t.ok('建议里提到换 3 位编码', /3 位编码/.test(hint), hint.replace(/<[^>]+>/g, ''));
+
+t.section('输出代码可以手动编辑 + 撤回，跟逆推的 shotEdit 是同一套模式');
+reset(); S.runs = [newRun('abc')];
+t.eq('没手改时 liveOutCode 等于自动生成', liveOutCode(), codeOut());
+S.codeEdit = '手写的任意内容，跟设计完全对不上也没关系';
+dom.el('code').value = S.codeEdit; // 模拟用户已经在文本框里打完这段字（oninput 触发时框里就是这个值）
+t.eq('手改之后 liveOutCode 用手改的版本', liveOutCode(), S.codeEdit);
+t.ok('手改内容不等于自动生成（确认真的在读 codeEdit，不是巧合一致）',
+  liveOutCode() !== codeOut(), liveOutCode());
+// 改设计（比如换编码档位）不应该悄悄冲掉手改——这是逆推那边已经验证过的行为，创作这边要一致
+S.enc = 'hex6';
+t.eq('改了设计之后，手改内容还在（没被覆盖）', liveOutCode(), S.codeEdit);
+render();
+t.eq('render() 之后手改内容依然还在', dom.el('code').value, S.codeEdit);
+t.eq('手改状态下，提示+撤回按钮的金色框应该显示（跟撤回按钮同框，不再分开两处）',
+  dom.el('mEditNote').style.display, 'flex');
+t.ok('金色框里有提示文字', dom.el('mEditNoteText').textContent.length > 0, dom.el('mEditNoteText').textContent);
+S.codeEdit = null; render();
+t.eq('撤回后 liveOutCode 回到自动生成', liveOutCode(), codeOut());
+t.eq('撤回后文本框内容也回到自动生成', dom.el('code').value, codeOut());
+t.eq('撤回后金色框重新隐藏', dom.el('mEditNote').style.display, 'none');
+
+t.section('手改输出代码之后，上面的预览要跟着改，不能停在旧设计上');
+reset(); S.runs = [newRun('abc')];
+const beforeCs = paintPreview();
+t.eq('没手改时预览文字等于设计生成的', beforeCs.map((o) => o.ch).join(''), 'abc');
+S.codeEdit = '{#ff0000>}XYZ{#00ff00<}';
+dom.el('code').value = S.codeEdit;
+const afterCs = paintPreview();
+t.eq('手改后预览文字变成手改代码里的文字，不再是 abc', afterCs.map((o) => o.ch).join(''), 'XYZ');
+t.eq('手改后预览颜色也是手改代码解出来的', afterCs[0].col, '#ff0000');
+t.ok('手改后预览跟旧的设计生成结果不一样了', afterCs.map((o) => o.ch).join('') !== beforeCs.map((o) => o.ch).join(''));
+S.codeEdit = null;
+const revertedCs = paintPreview();
+t.eq('撤回后预览变回设计生成的', revertedCs.map((o) => o.ch).join(''), 'abc');
 
 module.exports = t.done();

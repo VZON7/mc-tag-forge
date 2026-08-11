@@ -12,12 +12,25 @@
 const fs = require('fs');
 const path = require('path');
 
-function makeCanvas() {
-  const c = {
-    width: 0, height: 0, _img: null, style: {},
+function makeCanvas(target) {
+  // target 有传的话（比如 mk() 生成的普通 stub 元素）就直接把画布能力接到它身上，
+  // 不能每次 getContext() 都 new 一个不相干的画布——那样 width/height 设在外面那个
+  // 元素上，实际画的时候用的是另一个对象的 0/0，fillRect 循环直接空转。
+  const c = target || { width: 0, height: 0, _img: null, style: {} };
+  c._pixels = c._pixels || null;
+  Object.assign(c, {
     getContext() {
-      return {
+      const ensure = () => {
+        if (!c._pixels || c._pixels.length !== c.height) {
+          c._pixels = Array.from({ length: c.height }, () => new Array(c.width).fill(null));
+        }
+      };
+      const ctx = {
         imageSmoothingEnabled: true,
+        fillStyle: '#000000', strokeStyle: '#000000', lineWidth: 1,
+        // 逆推那边靠 drawImage/getImageData 读像素；像素预览那边靠 fillRect/clearRect 画像素。
+        // 两套桩共用同一个 c._pixels 网格，fillRect 的桩是给 drawGlyph 测试用的，
+        // 用真实二维网格记录颜色，而不是只判断"调用没报错"——否则字形位置错了也测不出来。
         drawImage(src, x, y, dw, dh) {
           const s = src._img || src;
           if (dw === undefined) { c._img = s; return; }
@@ -30,9 +43,23 @@ function makeCanvas() {
           c._img = { data: out, width: dw, height: dh };
         },
         getImageData() { return c._img; },
+        fillRect(x, y, w, h) {
+          ensure();
+          for (let yy = Math.max(0, Math.floor(y)); yy < Math.min(c.height, y + h); yy++)
+            for (let xx = Math.max(0, Math.floor(x)); xx < Math.min(c.width, x + w); xx++)
+              c._pixels[yy][xx] = ctx.fillStyle;
+        },
+        clearRect(x, y, w, h) {
+          ensure();
+          for (let yy = Math.max(0, Math.floor(y)); yy < Math.min(c.height, y + h); yy++)
+            for (let xx = Math.max(0, Math.floor(x)); xx < Math.min(c.width, x + w); xx++)
+              c._pixels[yy][xx] = null;
+        },
+        strokeRect() {}, // 缺字形占位框，测试不依赖这个，先留空避免报错
       };
+      return ctx;
     },
-  };
+  });
   return c;
 }
 
@@ -92,7 +119,8 @@ function install() {
       focus() {}, setSelectionRange() {}, click() {}, addEventListener() {},
       getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
       setPointerCapture() {}, hasPointerCapture: () => false,
-      getContext: () => makeCanvas().getContext(),
+      width: 0, height: 0,
+      getContext(kind) { return makeCanvas(el).getContext(kind); },
     };
     Object.defineProperty(el, 'innerHTML', { get() { return el._h; }, set(v) { el._h = v; } });
     Object.defineProperty(el, 'textContent', { get() { return el._t; }, set(v) { el._t = v; } });

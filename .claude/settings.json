@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(node \"C:/Users/User/AppData/Local/Temp/claude/c--dev-mc-tag-forge/a6ede351-517c-4165-a340-38c1517f29d8/scratchpad/extract-glyphs.js\")",
+      "Bash(node \"C:/Users/User/AppData/Local/Temp/claude/c--dev-mc-tag-forge/a6ede351-517c-4165-a340-38c1517f29d8/scratchpad/pack-glyphs.js\")"
+    ]
+  }
+}
