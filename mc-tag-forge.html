@@ -145,13 +145,31 @@ button.mini{padding:3px 7px;font-size:11px;min-width:26px}
   display:flex;align-items:center;justify-content:center;
   font-family:"Segoe UI Symbol","Noto Sans Symbols 2","Apple Symbols",system-ui,sans-serif}
 .wraps{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:7px}
-.wrapopt{background:var(--void);border:1px solid var(--line);padding:8px 9px;
-  cursor:pointer;text-align:left;width:100%;font-size:14px;
-  font-family:"Segoe UI Symbol","Noto Sans Symbols 2",ui-monospace,monospace}
+.wrapopt{position:relative;background:var(--void);border:1px solid var(--line);padding:8px 28px 8px 9px;
+  font-size:14px;font-family:"Segoe UI Symbol","Noto Sans Symbols 2",ui-monospace,monospace}
 .wrapopt:hover{border-color:var(--ember)}
 .wrapopt.active{border-color:var(--ember);box-shadow:inset 3px 0 0 var(--ember)}
+.wrapopt .wo-body{cursor:pointer}
 .wrapopt small{display:block;font-size:9px;color:var(--ink-faint);margin-top:3px;
   font-family:ui-monospace,Consolas,monospace}
+.wrapopt .star{position:absolute;top:3px;right:3px;border:none;background:none;padding:2px;
+  font-size:12px;color:var(--ink-faint);min-width:auto;line-height:1}
+.wrapopt .star:hover{color:var(--ember)}
+.wrapopt .star.on{color:var(--ember)}
+.wrapopt .wo-edit{position:absolute;bottom:4px;right:32px}
+.wrapopt .wo-del{position:absolute;bottom:4px;right:4px}
+.wrapPager{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:9px}
+.wrapPager span{font-size:11px;color:var(--ink-faint);font-family:ui-monospace,Consolas,monospace}
+
+/* 自定义包裹：前缀/后缀两个短框 + 实时预览 + 名字/保存一行 */
+.wrapbuilder{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.wrapbuilder .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.wrapbuilder input[type=text]{flex:1;min-width:70px}
+.wbPreview{font-size:16px;text-align:center;padding:8px;background:var(--panel-hi);
+  border:1px solid var(--line);margin-top:6px;font-family:"Segoe UI Symbol",ui-monospace,monospace}
+.wbPreview .ph{color:var(--ink-faint)}
+/* 名字框的占位文字用跟下方包裹名字（.wrapopt small）同一套字体/字号，不用输入框默认的大字 */
+#wbName::placeholder{font-size:9px;font-family:ui-monospace,Consolas,monospace;color:var(--ink-faint)}
 
 /* ── 渐变 / 输出 ── */
 .stops{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
@@ -361,7 +379,25 @@ textarea.out.edited{border-color:var(--mc-gold)}
 
 <h2 class="sec" id="secWrap">包裹</h2>
 <div class="panel">
+  <div class="note" id="wrapHint" style="margin:0 0 8px">选择、编辑或创建你的包裹</div>
+  <div class="wrapbuilder">
+    <div class="row">
+      <input type="text" id="wbPre">
+      <input type="text" id="wbSuf">
+    </div>
+    <div class="wbPreview" id="wbPreview"></div>
+    <div class="row" style="margin-top:6px">
+      <input type="text" id="wbName" class="grow">
+      <button id="wbApply">应用</button>
+      <button class="primary" id="wbApplySave">应用并保存</button>
+    </div>
+  </div>
   <div class="wraps" id="wraps"></div>
+  <div class="wrapPager" id="wrapPager">
+    <button id="wrapPrev" class="mini">‹</button>
+    <span id="wrapPageInfo"></span>
+    <button id="wrapNext" class="mini">›</button>
+  </div>
   <div class="note" id="wrapNote">包裹加在整条标签的最外层，渐变会流经它。括号里是它吃掉的字符数。</div>
 </div>
 
@@ -582,6 +618,44 @@ const WRAPS=[
  ['三角', '▶', '◀', 'Triangle'],
  ['菱形', '⟦◆', '◆⟧', 'Diamond'],
  ['花饰', '✦═', '═✦', 'Floral'],
+ /* 参照 madeintext.com 一类"符号文字艺术"网站的长度和样式加的，
+    字符全部来自本工具符号库（SYMS）已经在用的区块，没有引入新的未验证 Unicode 区块。 */
+ ['星月点环', '◦•●◉✿', '✿◉●•◦', 'Dotted Bloom Ring'],
+ ['星花分隔', '•────✦❀', '❀✦────•', 'Star Bloom Divider'],
+ ['铁轨纹', '┴┬┴┬┴┬┴', '┴┬┴┬┴┬┴', 'Rail Track'],
+ ['星尘环', '•·•⁘✳', '✳⁘•·•', 'Stardust Ring'],
+ ['音浪纹', '▂▃▄▅▆▇█', '█▇▆▅▄▃▂', 'Sound Wave'],
+ ['剪裁线', '✄┈┈┈┈┈┈┈', '┈┈┈┈┈┈┈✄', 'Cut Line'],
+ ['花信封角', '╭──── · · ⟡', '⟢ · · ────╮', 'Envelope Corner'],
+ /* 缎带/波浪：〜〰 是 CJK 符号区块（U+3000-303F），跟「」『』【】同区块，已经在用 */
+ ['波纹缎带', '〜✦〜', '〜✦〜', 'Ribbon Wave'],
+ ['双浪带', '〰〰', '〰〰', 'Double Ribbon'],
+ ['缎带结', '〜❀〜', '〜❀〜', 'Ribbon Bow'],
+ ['海浪纹', '〜〜〜', '〜〜〜', 'Ocean Wave'],
+ ['双层浪', '〰•〰', '〰•〰', 'Layered Wave'],
+ ['浪尖星', '〜✧〜', '〜✧〜', 'Wave Star'],
+ /* 盛开花朵 */
+ ['繁花', '❀✿❀', '❀✿❀', 'Full Bloom'],
+ ['花语', '✿❁✿', '✿❁✿', 'Flower Whisper'],
+ ['花瓣雨', '❀·❀', '❀·❀', 'Petal Rain'],
+ /* 酷炫 */
+ ['雷电纹', '⚡➤', '➤⚡', 'Lightning'],
+ ['骸骨纹', '☠━', '━☠', 'Skull Mark'],
+ ['对勾纹', '✔═', '═✔', 'Checkmark Line'],
+ // 参照用户给的「▶︎•၊၊||၊|။||||။၊|။•」声波字符画，原版里的缅甸文标点没验证过能不能在游戏里显示，
+ // 换成竖线｜和已验证的 ▶◀• 达到类似的"声波"效果
+ ['声波纹', '▶•|||•', '•|||•◀', 'Sound Pulse'],
+ /* 复古怀旧：´¨`¸ 是 Latin-1 补充区块（U+00A0-00FF），跟已经支持的基本拉丁字符同区块 */
+ ['云朵点', '•*´¨`*•.¸¸.', '.¸¸.•*´¨`*•', 'Cloud Dots'],
+ ['长云朵点', '´¨`*•.¸¸.•*', '*•.¸¸.•*´¨`', 'Long Cloud Dots'],
+ ['印刷花饰', '⁂', '⁂', "Printer's Ornament"],
+ ['古典引号', '„', '"', 'Vintage Quote'],
+ ['双剑纹', '‡', '‡', 'Dagger Pair'],
+ // 参照用户给的「═════⊹⊱≼≽⊰⊹═════」，原版里的 ⊹⊱≼≽⊰ 是数学符号区块，这个工具从没验证过，
+ // 换成已验证的 ✦◆ 保留"双线夹着星钻"的效果
+ ['星河', '═════✦◆', '◆✦═════', 'Star River'],
+ ['碎星', '✳•✳', '✳•✳', 'Star Shards'],
+ ['星语', '✧⁘✧', '✧⁘✧', 'Star Whisper'],
 ];
 
 /* ═══════════════ 符号库 ═══════════════ */
@@ -631,7 +705,7 @@ const FNAME_EN={l:'Bold (&l)',o:'Italic (&o)',n:'Underline (&n)',
 const newRun = txt => ({t:txt||'', st:null, f:{l:0,o:0,n:0,m:0,k:0}, fix:null, mirror:false});
 const S={
   runs:[newRun('「Takodachi 🐙 Prime」')], active:0,
-  wrap:0, nStops:2, cuts:[], cap:50, pk:0,
+  wrap:0, wrapPage:0, myWraps:[], starred:[], nStops:2, cuts:[], cap:50, pk:0,
   stops:['#f37c52','#8860c6','#5555ff','#2f5b8b'],
   enc:'hex3', pixel:false, lore:true, presets:[], cat:'括号', codeEdit:null,
   shotText:'', shotStyle:null, shotFit:0, shotPk:0, shotCustom:null,
@@ -681,9 +755,32 @@ function rampN(n,from,to){
 }
 /* 段落 → 已上花体的字符块，包裹算作首尾两个无格式段 */
 let HOVER=null;
+/* 符号面板点一下插到哪：默认插到当前选中的段落文字，焦点落到"自定义包裹"的
+   前缀/后缀框时改插到那边——跟哪个输入框有焦点走，不用额外按钮切换目标。 */
+let INSERT_TARGET={type:'seg'};
+function updateWbPreview(){
+  // 前缀/后缀哪边还没打字，哪边就用"---"占位；一旦打了字，"---"立刻换成真正打的符号。
+  const pre=$('wbPre').value, suf=$('wbSuf').value;
+  const preShow = pre ? esc(pre) : '<span class="ph">---</span>';
+  const sufShow = suf ? esc(suf) : '<span class="ph">---</span>';
+  $('wbPreview').innerHTML=preShow+'<span class="ph">'+t('文字','text')+'</span>'+sufShow;
+}
 /* hover 花体只用于预览。输出路径一律不传 hover，避免悬停时复制到错误的代码。 */
+/* 包裹可能来自内置表（S.wrap>=0）、用户自己存的"我的包裹"（S.wrap<0，
+   -1 对应 myWraps[0]，-2 对应 myWraps[1]……），或者"应用"按钮临时套用的
+   还没保存的草稿（S.wrap==='draft'，直接读自定义包裹输入框当前的值，
+   跟着打字实时变）。统一走这个函数取值，不要在别处直接下标 WRAPS[S.wrap]。 */
+function curWrap(){
+  if(S.wrap==='draft'){
+    const n=$('wbName').value.trim()||t('未命名','Untitled');
+    return [n,$('wbPre').value,$('wbSuf').value,n];
+  }
+  if(S.wrap>=0) return WRAPS[S.wrap]||WRAPS[0];
+  const m=S.myWraps[-S.wrap-1];
+  return m ? [m.name,m.pre,m.suf,m.name] : WRAPS[0];
+}
 function blocks(hover){
-  const w=WRAPS[S.wrap], out=[];
+  const w=curWrap(), out=[];
   S.runs.forEach((r,i)=>{
     // hover 花体卡片时临时套用到当前段，鼠标移开就恢复 —— 不写入状态
     const si = (hover && HOVER!==null && i===S.active) ? (HOVER<0?null:HOVER) : r.st;
@@ -1025,7 +1122,7 @@ function saveHints(need, Lm){
   if(combN)   tips.push([combN,t(`${combN} 个组合符 —— 换成「预组合」那一档，1 格且贴合`,
     `${combN} combining mark(s) — switch to a "Precomposed" style, 1 slot and fits well`)]);
   if(S.runs.length>1) tips.push([14,t('合并段落，每段省 14 格','Merge segments, saves ~14 per segment')]);
-  if(S.wrap){const w=WRAPS[S.wrap];tips.push([w[1].length+w[2].length,t(`去掉包裹「${w[0]}」`,`Remove the "${w[3]}" wrap`)]);}
+  if(S.wrap){const w=curWrap();tips.push([w[1].length+w[2].length,t(`去掉包裹「${w[0]}」`,`Remove the "${w[3]}" wrap`)]);}
   tips.sort((a,b)=>b[0]-a[0]);
   if(!tips.length) return `<span class="over">${t('只能删字了。','Only cutting characters left.')}</span>`;
   return `<span class="over">${t(`还要省 ${need} 格。`,`Need to save ${need} more.`)}</span> `+
@@ -1036,7 +1133,7 @@ function renderRuns(){
   const cs=cells(), st=[]; let i0=0;
   // 每段第一个字符的实际颜色 —— 用来给序号上色，方便把行对应到预览里的位置
   blocks().forEach(b=>{ st.push(cs[i0]?cs[i0].col:'#888'); i0+=b.chars.length; });
-  const w=WRAPS[S.wrap], off=w[1]?1:0;
+  const w=curWrap(), off=w[1]?1:0;
 
   $('runs').innerHTML=S.runs.map((r,i)=>{
     return `<div class="rw${S.active===i?' active':''}" data-row="${i}">
@@ -1067,7 +1164,7 @@ function renderRuns(){
   R.querySelectorAll('.rw').forEach(el=>el.onmousedown=()=>pick(+el.dataset.row));
   R.querySelectorAll('[data-t]').forEach(el=>{
     el.oninput=()=>{S.runs[+el.dataset.t].t=el.value; render();};
-    el.onfocus=()=>pick(+el.dataset.t);});
+    el.onfocus=()=>{pick(+el.dataset.t); INSERT_TARGET={type:'seg'};};});
   R.querySelectorAll('[data-f]').forEach(el=>el.onclick=()=>{
     const [i,k]=el.dataset.f.split(':'); S.runs[+i].f[k]=S.runs[+i].f[k]?0:1;
     S.active=+i; renderRuns(); render();});
@@ -1126,7 +1223,7 @@ function renderRuns(){
 function tintRuns(){
   const cs=cells(); let i0=0; const st=[];
   blocks().forEach(b=>{ st.push(cs[i0]?cs[i0].col:'#888'); i0+=b.chars.length; });
-  const off=WRAPS[S.wrap][1]?1:0;
+  const off=curWrap()[1]?1:0;
   $('runs').querySelectorAll('.rw').forEach(el=>{
     const n=el.querySelector('.no'); if(n) n.style.color=st[+el.dataset.row+off]||'#888';});
 }
@@ -1162,21 +1259,75 @@ function renderStyles(){
     b.onmouseleave=()=>{ if(HOVER===i){ HOVER=null; paintPreview(); } };
   });
 }
+function wrapKey(mine,ref){ return mine?'m:'+ref:'b:'+ref; }
+function isStarred(key){ return S.starred.includes(key); }
+function toggleStar(key){
+  const i=S.starred.indexOf(key);
+  if(i>=0) S.starred.splice(i,1); else S.starred.push(key);
+  saveStarred();
+}
 function renderWraps(){
   /* 成本必须是真实的代码长度差，不是字符数。包裹前后各自要开一对渐变标签，
-     所以实际开销远大于字符数本身（方块长：字符 14，实际 42）。 */
+     所以实际开销远大于字符数本身（方块长：字符 14，实际 42）。
+     种类太多会把页面拉得很长，所以分页显示，一页 12 个。
+     排序："无" → 自己做的（S.myWraps，新做的在最前面，见 wbApplySave 用 unshift）
+     → ★收藏的内置包裹 → 其它内置包裹。自定义包裹用负数下标区分（-1 = myWraps[0]），
+     curWrap() 统一解出实际的 [名,前缀,后缀,英文名]。 */
+  $('wbPre').placeholder=t('前缀','Prefix');
+  $('wbSuf').placeholder=t('后缀','Suffix');
+  $('wbName').placeholder=t('给这个包裹起个名字','Name this wrap');
+  $('wbApply').textContent=t('应用','Apply');
+  $('wbApplySave').textContent=t('应用并保存这个包裹','Apply & Save this wrap');
+  updateWbPreview();
   const keep=S.wrap;
-  const cost=WRAPS.map((_,i)=>{S.wrap=i;return codeOut().length;});
+  let entries=[
+    ...WRAPS.map((w,i)=>({mine:false, ref:i, name:w[0], en:w[3], pre:w[1], suf:w[2], key:wrapKey(false,i), val:i})),
+    ...S.myWraps.map((m,j)=>({mine:true, ref:j, name:m.name, en:m.name, pre:m.pre, suf:m.suf, key:wrapKey(true,m.id), val:-(j+1)})),
+  ];
+  const none=entries[0], rest=entries.slice(1);
+  const mine=rest.filter(e=>e.mine), builtinRest=rest.filter(e=>!e.mine);
+  entries=[none, ...mine, ...builtinRest.filter(e=>isStarred(e.key)), ...builtinRest.filter(e=>!isStarred(e.key))];
+  const cost=entries.map(e=>{ S.wrap=e.val; return codeOut().length; });
   S.wrap=keep;
   const base=cost[0];
-  $('wraps').innerHTML=WRAPS.map((w,i)=>{
-    const d=cost[i]-base;
-    return `<button class="wrapopt${S.wrap===i?' active':''}" data-w="${i}">
-      ${esc(w[1])}<span style="color:var(--ink-faint)">text</span>${esc(w[2])}
-      <small>${t(w[0],w[3])}${d?` · +${d} ${t('格（含标签）','chars (incl. tags)')}`:''}</small></button>`;
+  const PAGESZ=12, totalPages=Math.max(1,Math.ceil(entries.length/PAGESZ));
+  S.wrapPage=Math.max(0,Math.min(S.wrapPage||0,totalPages-1));
+  const startI=S.wrapPage*PAGESZ;
+  const page=entries.slice(startI,startI+PAGESZ), costPage=cost.slice(startI,startI+PAGESZ);
+  $('wraps').innerHTML=page.map((e,pi)=>{
+    const d=costPage[pi]-base, active=S.wrap===e.val;
+    return `<div class="wrapopt${active?' active':''}">
+      <button class="star${isStarred(e.key)?' on':''}" data-star="${e.key}" title="${t('常用','Favorite')}">${isStarred(e.key)?'★':'☆'}</button>
+      <div class="wo-body" data-pick="${e.val}">
+        ${esc(e.pre)}<span style="color:var(--ink-faint)">text</span>${esc(e.suf)}
+        <small>${esc(t(e.name,e.en))}${d?` · +${d} ${t('格（含标签）','chars (incl. tags)')}`:''}</small>
+      </div>
+      ${active?`<button class="mini wo-edit" data-edit title="${t('编辑当前包裹','Edit current wrap')}">✎</button>`:''}
+      ${e.mine?`<button class="mini wo-del" data-del="${e.ref}" title="${t('删除','Delete')}">×</button>`:''}
+    </div>`;
   }).join('');
-  $('wraps').querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>{
-    S.wrap=+b.dataset.w; render();});
+  $('wraps').querySelectorAll('.wo-body').forEach(el=>el.onclick=()=>{
+    S.wrap=+el.dataset.pick; render();});
+  $('wraps').querySelectorAll('[data-star]').forEach(b=>b.onclick=ev=>{
+    ev.stopPropagation(); toggleStar(b.dataset.star); renderWraps();});
+  $('wraps').querySelectorAll('[data-edit]').forEach(b=>b.onclick=ev=>{
+    ev.stopPropagation();
+    const w=curWrap();
+    $('wbPre').value=w[1]; $('wbSuf').value=w[2]; $('wbName').value=(w[0]===w[3])?w[0]:'';
+    updateWbPreview();
+  });
+  $('wraps').querySelectorAll('[data-del]').forEach(b=>b.onclick=ev=>{
+    ev.stopPropagation();
+    const idx=+b.dataset.del, delId=S.myWraps[idx]&&S.myWraps[idx].id;
+    if(S.wrap<0){ const pos=-S.wrap-1; if(pos===idx) S.wrap=0; else if(pos>idx) S.wrap+=1; }
+    S.myWraps.splice(idx,1);
+    if(delId) S.starred=S.starred.filter(k=>k!==('m:'+delId));
+    saveMyWraps(); saveStarred();
+    render();
+  });
+  $('wrapPageInfo').textContent=t(`第 ${S.wrapPage+1} / ${totalPages} 页`,`Page ${S.wrapPage+1} / ${totalPages}`);
+  $('wrapPrev').disabled=S.wrapPage===0;
+  $('wrapNext').disabled=S.wrapPage>=totalPages-1;
 }
 function renderSyms(){
   $('symcats').innerHTML=Object.keys(SYMS).map(k=>
@@ -1184,6 +1335,15 @@ function renderSyms(){
   $('symcats').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.cat=b.dataset.k;renderSyms();});
   $('symgrid').innerHTML=[...SYMS[S.cat]].map(c=>`<button data-c="${esc(c)}">${esc(c)}</button>`).join('');
   $('symgrid').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    if(INSERT_TARGET.type==='wbPre'||INSERT_TARGET.type==='wbSuf'){
+      const el=$(INSERT_TARGET.type==='wbPre'?'wbPre':'wbSuf');
+      const p=el.selectionStart!=null?el.selectionStart:el.value.length;
+      el.value=el.value.slice(0,p)+b.dataset.c+el.value.slice(p);
+      try{ el.focus({preventScroll:true}); }catch(e){}
+      el.setSelectionRange(p+b.dataset.c.length,p+b.dataset.c.length);
+      updateWbPreview();
+      return;
+    }
     const r=S.runs[S.active]; if(!r) return;
     const y=window.scrollY, el=$('runs').querySelector(`[data-t="${S.active}"]`);
     const p = el && el.selectionStart!=null ? el.selectionStart : r.t.length;
@@ -1194,9 +1354,15 @@ function renderSyms(){
     window.scrollTo(0,y);
     renderStyles(); render();
   });
-  const note = S.lang==='zh' ? SYMNOTE[S.cat] : SYMNOTE_EN[S.cat];
-  $('symnote').innerHTML=note||t(`点一下插到<b>段 ${S.active+1}</b>的光标位置。`,
-    `Click one to insert at the cursor in <b>Segment ${S.active+1}</b>.`);
+  if(INSERT_TARGET.type==='wbPre'||INSERT_TARGET.type==='wbSuf'){
+    const side=INSERT_TARGET.type==='wbPre'?t('前缀','prefix'):t('后缀','suffix');
+    $('symnote').innerHTML=t(`点一下插到<b>自定义包裹${side}</b>的光标位置。`,
+      `Click one to insert at the cursor in the custom wrap's <b>${side}</b>.`);
+  } else {
+    const note = S.lang==='zh' ? SYMNOTE[S.cat] : SYMNOTE_EN[S.cat];
+    $('symnote').innerHTML=note||t(`点一下插到<b>段 ${S.active+1}</b>的光标位置。`,
+      `Click one to insert at the cursor in <b>Segment ${S.active+1}</b>.`);
+  }
 }
 /* ── 取色器：HSV 方块 + 色相条，指针拖动 ── */
 function hex2hsv(hex){
@@ -1305,6 +1471,24 @@ function copy(s,m){navigator.clipboard.writeText(s).then(()=>toast(m),()=>{
   ta.select();document.execCommand('copy');ta.remove();toast(m);});}
 
 $('addRun').onclick=addRun;
+$('wrapPrev').onclick=()=>{S.wrapPage--; renderWraps();};
+$('wrapNext').onclick=()=>{S.wrapPage++; renderWraps();};
+$('wbPre').onfocus=()=>{INSERT_TARGET={type:'wbPre'};};
+$('wbSuf').onfocus=()=>{INSERT_TARGET={type:'wbSuf'};};
+function wbInput(){ updateWbPreview(); if(S.wrap==='draft') render(); }
+$('wbPre').oninput=wbInput;
+$('wbSuf').oninput=wbInput;
+$('wbApply').onclick=()=>{ S.wrap='draft'; render(); };
+$('wbApplySave').onclick=()=>{
+  const name=$('wbName').value.trim()||t('未命名','Untitled');
+  const id='c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  S.myWraps.unshift({id, name, pre:$('wbPre').value, suf:$('wbSuf').value});
+  saveMyWraps();
+  S.wrap=-1; // 刚用 unshift 插到 myWraps[0]，对应编码永远是 -1，保存即套用
+  $('wbPre').value=''; $('wbSuf').value=''; $('wbName').value='';
+  updateWbPreview();
+  render();
+};
 $('segInfoBtn').onclick=e=>{
   e.stopPropagation();
   const pop=$('segInfoPop'), willShow=!pop.classList.contains('show');
@@ -1398,6 +1582,20 @@ function loadPresets(){
   try{ const a=JSON.parse(raw); if(Array.isArray(a)) S.presets=a; }catch(e){}
 }
 function savePresets(){ PERSIST=store.set(PKEY, JSON.stringify(S.presets)); }
+
+const MWKEY='mc-tag-forge:mywraps', STARKEY='mc-tag-forge:starred';
+function loadMyWraps(){
+  const raw=store.get(MWKEY);
+  if(!raw) return;
+  try{ const a=JSON.parse(raw); if(Array.isArray(a)) S.myWraps=a; }catch(e){}
+}
+function saveMyWraps(){ store.set(MWKEY, JSON.stringify(S.myWraps)); }
+function loadStarred(){
+  const raw=store.get(STARKEY);
+  if(!raw) return;
+  try{ const a=JSON.parse(raw); if(Array.isArray(a)) S.starred=a; }catch(e){}
+}
+function saveStarred(){ store.set(STARKEY, JSON.stringify(S.starred)); }
 
 function snap(){return JSON.parse(JSON.stringify({runs:S.runs,wrap:S.wrap,
   nStops:S.nStops,cuts:S.cuts,stops:S.stops,enc:S.enc}));}
@@ -2301,6 +2499,7 @@ const STATIC_I18N=[
  ['bProbeE','emoji 探针（候选 1791 个）','Emoji Probe (1791 candidates)'],
  ['secSymbols','符号 · 插入当前选中的段','Symbols · Insert into the selected segment'],
  ['secWrap','包裹','Wrap'],
+ ['wrapHint','选择、编辑或创建你的包裹','Choose or edit/create your wrap'],
  ['secGradient','渐变','Gradient'],
  ['mode2','2 色','2 Colors'],
  ['mode3','3 色','3 Colors'],
@@ -2383,6 +2582,7 @@ $('langZh').onclick=()=>{ S.lang='zh'; applyLang(); };
 $('langEn').onclick=()=>{ S.lang='en'; applyLang(); };
 
 loadPresets(); savePresets();   // savePresets 顺带探测存储可用性
+loadMyWraps(); loadStarred();
 setMode2('C');
 applyLang();
 </script>
