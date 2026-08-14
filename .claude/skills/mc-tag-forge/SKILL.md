@@ -23,7 +23,7 @@ description: ZONZON 的 Minecraft 标签锻造台项目（单文件 HTML 工具�
 5. **只有交付 `mc-tag-forge.html` 时**，回复最后一行写「这是第 N 次 update」，N 取下面的计数器加一，并同步更新本文件里的计数器。交付 skill 文档或其他文件**不计数、不写这一行**。
 6. **没改动的文件不要重新交付。** 一次回复里只放这轮真正变过的文件。
 
-> **mc-tag-forge.html 交付计数：19**（下次交付写「这是第 20 次 update」）
+> **mc-tag-forge.html 交付计数：24**（下次交付写「这是第 25 次 update」）
 
 ## 已验证的平台事实
 

@@ -22,15 +22,37 @@ body{background:var(--void);color:var(--ink);font-size:14px;line-height:1.55;
 header.masthead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
   padding-bottom:12px;border-bottom:1px solid var(--line)}
 .masthead h1{margin:0;font-size:17px;font-weight:650;letter-spacing:.02em}
-.masthead .sub{font-size:12px;color:var(--ink-faint)}
-.masthead .ver{margin-left:auto;font-size:11px;color:var(--ink-faint);
-  font-family:ui-monospace,Consolas,monospace}
+.hdrbtns{margin-left:auto;display:flex;align-items:center;gap:16px}
+
+/* 语言：大胶囊分段，滑块随选中项滑动 —— 一眼看出是二选一 */
+.lang-pill{position:relative;display:flex;border:1px solid var(--line);border-radius:999px;
+  background:var(--panel-hi);padding:2px;width:88px}
+.lang-pill .lopt-bg{position:absolute;top:2px;left:2px;width:calc(50% - 2px);
+  height:calc(100% - 4px);background:var(--ember);border-radius:999px;
+  transition:transform .18s ease;z-index:0}
+.lang-pill[data-state="en"] .lopt-bg{transform:translateX(100%)}
+.lopt{position:relative;z-index:1;flex:1;background:none;border:none;padding:6px 0;
+  font-size:12px;font-weight:700;color:var(--ink-dim);cursor:pointer;border-radius:999px;
+  font-family:inherit}
+.lopt.on{color:#210b02}
+.lopt:hover{border-color:transparent}
+.lopt:not(.on):hover{color:var(--ink)}
+
+/* 模式（创作/逆推）：下划线标签 —— 跟语言胶囊形状不同，一眼分清这是两种不同性质的开关 */
+.mode-tabs{display:flex;gap:14px}
+.mtab{background:none;border:none;padding:2px 0;font-size:12px;color:var(--ink-faint);
+  cursor:pointer;border-bottom:2px solid transparent;font-family:inherit}
+.mtab.on{color:var(--ink);border-bottom-color:var(--ember);font-weight:700}
+.mtab:hover{border-color:transparent}
+.mtab:not(.on):hover{color:var(--ink);border-bottom-color:var(--line)}
 
 /* ── 顶部固定区：实时 tooltip + 段落编辑 ── */
 .dock{position:sticky;top:0;z-index:40;background:var(--void);
   padding:12px 0 11px;border-bottom:1px solid var(--line)}
 .dock.collapsed .dockbody{display:none}
 .dockbody{margin-top:9px;max-height:44vh;overflow-y:auto}
+.addrow{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
+.addrow .hint{font-size:11px;color:var(--ink-faint)}
 .tooltip{padding:8px 10px 10px;min-height:84px}
 .tt-name{font-size:0;word-break:break-word}
 .tt-name span{font-size:24px}
@@ -44,6 +66,14 @@ header.masthead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
 #pvCanvas{display:none;image-rendering:pixelated;max-width:100%}
 .stage-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;
   font-size:11px;color:var(--ink-faint)}
+
+/* 字形二选一：圆点单选 —— 圆点本身就是单选符号，不用靠颜色也能看懂是二选一 */
+.dot2{display:inline-flex;gap:14px;font-size:12px}
+.dot2 .w{display:inline-flex;align-items:center;gap:5px;color:var(--ink-faint);cursor:pointer}
+.dot2 .w.on{color:var(--ink);font-weight:700}
+.dot2 .dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--ink-faint);
+  display:inline-block}
+.dot2 .w.on .dot{border-color:var(--ember);background:var(--ember)}
 
 h2.sec{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
   color:var(--ink-faint);margin:24px 0 8px;display:flex;align-items:center;gap:10px}
@@ -192,11 +222,7 @@ textarea.out.edited{border-color:var(--mc-gold)}
 
 /* ── 顶层模式切换 ── */
 .modes{display:flex;gap:0;margin:16px 0 4px;border-bottom:1px solid var(--line)}
-.modes button{border:1px solid var(--line);border-bottom:none;background:transparent;
-  padding:8px 18px;font-size:12px;font-weight:600;margin-bottom:-1px;color:var(--ink-faint)}
-.modes button.on{color:var(--ember);border-color:var(--line);
-  background:var(--panel);border-bottom:1px solid var(--panel)}
-.modes .hint{margin-left:auto;align-self:center;font-size:11px;color:var(--ink-faint);
+.modes .hint{align-self:center;font-size:11px;color:var(--ink-faint);
   padding-bottom:6px}
 
 /* ── 截图逆推 ── */
@@ -239,11 +265,20 @@ textarea.out.edited{border-color:var(--mc-gold)}
 <div class="wrap">
 
 <header class="masthead">
-  <h1><span id="mainTitle">标签锻造台</span> <span id="vzonSub" style="font-weight:400">Vzon's item tag creator</span></h1>
-  <span class="sub" id="headerSub">段落 · 花体 · 符号 · 渐变 · EssentialsX 代码</span>
-  <button id="langToggle" class="ver" style="cursor:pointer;background:transparent;border:1px solid var(--line);margin-left:auto">EN</button>
-  <span class="ver">v2</span>
+  <h1><span id="mainTitle"></span></h1>
+  <div class="hdrbtns">
+    <div class="lang-pill" id="langPill" data-state="zh">
+      <button id="langZh" class="lopt on">中</button>
+      <button id="langEn" class="lopt">EN</button>
+      <div class="lopt-bg"></div>
+    </div>
+    <div class="mode-tabs">
+      <button id="tabC" class="mtab on">创作</button>
+      <button id="tabR" class="mtab">逆推</button>
+    </div>
+  </div>
 </header>
+<div class="note" id="headerSub" style="margin-bottom:2px">段落 · 花体 · 符号 · 渐变 · EssentialsX 代码</div>
 
 <div class="dock" id="dock">
   <div class="tip tooltip">
@@ -254,14 +289,20 @@ textarea.out.edited{border-color:var(--mc-gold)}
     </div>
   </div>
   <div class="stage-bar">
-    <button id="fontToggle">字形：系统</button>
+    <div class="dot2" id="glyphPick">
+      <span class="w on" data-v="sys" id="glyphSys"><span class="dot"></span><span class="lbl">系统</span></span>
+      <span class="w" data-v="pix" id="glyphPix"><span class="dot"></span><span class="lbl">像素</span></span>
+    </div>
     <button id="loreToggle" class="on">lore 参照</button>
-    <button id="addRun">+ 加一段</button>
     <span class="grow"></span>
     <button id="dockToggle">收起段落</button>
   </div>
   <div class="dockbody" id="dockbody">
     <div class="rl" id="runs"></div>
+    <div class="addrow">
+      <button id="addRun">+ 加一段</button>
+      <span class="hint" id="addRunHint">想让某些表情换单色不参与渐变，或让某些字单独用不同的花体？加一段——但容易超字数上限，谨慎使用</span>
+    </div>
   </div>
 </div>
 <div class="note" id="dockNote" style="margin-bottom:2px">每段可以有自己的花体和格式，渐变默认是全局一条、按字符切给各段。
@@ -269,8 +310,6 @@ textarea.out.edited{border-color:var(--mc-gold)}
 花体只改显示，不写回原文。<b>每多一段大约多 12 个字符</b>，看输出栏的长度计。</div>
 
 <div class="modes">
-  <button id="tabC" class="on">创作</button>
-  <button id="tabR">逆推</button>
   <span class="hint" id="modeHint">做自己的标签</span>
 </div>
 
@@ -1046,7 +1085,12 @@ function addRun(){
   S.runs.push(newRun('')); S.active=S.runs.length-1;
   renderRuns(); renderStyles(); renderSyms(); render();
   const el=$('runs').querySelector(`[data-t="${S.active}"]`);
-  if(el) try{ el.focus({preventScroll:true}); }catch(e){ el.focus(); }
+  if(el){
+    // 新加的一段常常落在 dockbody 限高滚动框看不见的地方，得主动滚出来，
+    // 不然点了按钮跟没反应一样。只滚这个内部框（block:'nearest'），不牵动整页。
+    try{ el.scrollIntoView({block:'nearest'}); }catch(e){}
+    try{ el.focus({preventScroll:true}); }catch(e){ el.focus(); }
+  }
 }
 function renderStyles(){
   const cur=S.runs[S.active], probe=(cur&&cur.t.replace(/[^A-Za-z0-9 ]/g,'').trim())||'Takodachi';
@@ -1216,9 +1260,14 @@ $('dockToggle').onclick=()=>{
   const c=$('dock').classList.toggle('collapsed');
   $('dockToggle').textContent=c?t('展开段落','Expand Segments'):t('收起段落','Collapse Segments');
   $('dockToggle').classList.toggle('on',c);};
-$('fontToggle').onclick=()=>{S.pixel=!S.pixel;
-  $('fontToggle').textContent=t('字形：','Glyphs: ')+(S.pixel?t('像素','Pixel'):t('系统','System'));
-  $('fontToggle').classList.toggle('on',S.pixel);render();};
+function setGlyphPixel(v){
+  S.pixel=v;
+  $('glyphSys').classList.toggle('on',!v);
+  $('glyphPix').classList.toggle('on',v);
+  render();
+}
+$('glyphSys').onclick=()=>setGlyphPixel(false);
+$('glyphPix').onclick=()=>setGlyphPixel(true);
 $('loreToggle').onclick=()=>{S.lore=!S.lore;$('loreToggle').classList.toggle('on',S.lore);render();};
 
 function setMode(n){S.nStops=n; S.cuts=[];
@@ -2178,10 +2227,11 @@ window.addEventListener('paste',e=>{
    HTML 里、JS 不会再碰的标签/说明文字。textContent 版给纯文字元素用，
    innerHTML 版给带 <b>/<span class=badge> 这类内嵌标签的说明用。 */
 const STATIC_I18N=[
- ['mainTitle','标签锻造台','Tag Forge'],
  ['headerSub','段落 · 花体 · 符号 · 渐变 · EssentialsX 代码','Segments · Fancy Text · Symbols · Gradient · EssentialsX Code'],
  ['loreToggle','lore 参照','Lore Preview'],
  ['addRun','+ 加一段','+ Add Segment'],
+ ['addRunHint','想让某些表情换单色不参与渐变，或让某些字单独用不同的花体？加一段——但容易超字数上限，谨慎使用',
+  'Want a symbol to stay a flat color instead of following the gradient, or give some characters their own fancy text? Add a segment — but it eats into the character limit fast, so use sparingly'],
  ['tabC','创作','Create'],
  ['tabR','逆推','Extract'],
  ['secStyles','花体 · 作用于当前选中的段','Fancy Text · Applies to the selected segment'],
@@ -2242,10 +2292,24 @@ function applyStaticI18n(){
 /* 切换语言 = 重刷所有依赖 S.lang 的东西。静态标签走上面两张表；
    动态内容（段落行、花体卡片、渐变面板……）本来就是每次 render() 全量重绘，
    直接把已有的 render 函数群跑一遍即可，不用另外维护一套"更新"逻辑。 */
+function renderMainTitle(){
+  const el=$('mainTitle'); if(!el) return;
+  const code = S.lang==='zh'
+    ? "{#28a>}Vzon's{#97c<>}的标签{#ddd<>}锻造台{#048<}"
+    : "{#28a>}Vzon's item{#97c<>} tag {#ddd<>}forge{#048<}";
+  try{
+    const cs=parseCode(code);
+    el.innerHTML=cs.map(o=>`<span style="color:${o.col}">${esc(o.ch)}</span>`).join('');
+  }catch(e){ el.textContent = S.lang==='zh' ? "Vzon's的标签锻造台" : "Vzon's item tag forge"; }
+}
 function applyLang(){
-  $('langToggle').textContent = S.lang==='zh' ? 'EN' : '中';
+  $('langZh').classList.toggle('on', S.lang==='zh');
+  $('langEn').classList.toggle('on', S.lang==='en');
+  $('langPill').dataset.state = S.lang;
   applyStaticI18n();
-  $('fontToggle').textContent=t('字形：','Glyphs: ')+(S.pixel?t('像素','Pixel'):t('系统','System'));
+  renderMainTitle();
+  $('glyphSys').querySelector('.lbl').textContent=t('系统','System');
+  $('glyphPix').querySelector('.lbl').textContent=t('像素','Pixel');
   const collapsed=$('dock').classList.contains('collapsed');
   $('dockToggle').textContent=collapsed?t('展开段落','Expand Segments'):t('收起段落','Collapse Segments');
   $('modeHint').textContent = $('tabR').classList.contains('on')
@@ -2256,20 +2320,12 @@ function applyLang(){
   renderRuns(); renderStops(); renderSyms(); render(); renderPresets();
   if(SHOT&&SHOT.img) reExtract();   // 逆推面板整块重建，跟着换语言
 }
-$('langToggle').onclick=()=>{ S.lang = S.lang==='zh' ? 'en' : 'zh'; applyLang(); };
+$('langZh').onclick=()=>{ S.lang='zh'; applyLang(); };
+$('langEn').onclick=()=>{ S.lang='en'; applyLang(); };
 
 loadPresets(); savePresets();   // savePresets 顺带探测存储可用性
 setMode2('C');
 applyLang();
-
-/* 页头副标题用用户给的渐变代码上色，跟工具自己的代码解析器（parseCode）复用同一套逻辑。 */
-(function(){
-  const el=$('vzonSub'); if(!el) return;
-  try{
-    const cs=parseCode("{#28a>}Vzon's item{#97c<>} tag {#ddd<>}creator{#048<}");
-    el.innerHTML=cs.map(o=>`<span style="color:${o.col}">${esc(o.ch)}</span>`).join('');
-  }catch(e){}
-})();
 </script>
 </body>
 </html>
