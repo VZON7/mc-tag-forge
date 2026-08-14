@@ -192,8 +192,10 @@ textarea.out.edited{border-color:var(--mc-gold)}
 .rw:hover{border-color:#402650}
 .rw.active{border-color:var(--ember);box-shadow:inset 3px 0 0 var(--ember)}
 .rw.dragging{opacity:.45;border-color:var(--ember)}
-.rw .grip{flex:0 0 16px;width:16px;text-align:center;font-size:13px;line-height:1;
-  color:var(--ink-faint);cursor:grab;user-select:none;touch-action:none;margin-left:2px}
+.rl.dragging-active{user-select:none}
+.rw .grip{flex:0 0 16px;width:16px;align-self:stretch;display:flex;align-items:center;
+  justify-content:center;font-size:13px;line-height:1;color:var(--ink-faint);cursor:grab;
+  user-select:none;touch-action:none;margin-left:2px}
 .rw .grip:hover{color:var(--ink)}
 .rw .grip:active{cursor:grabbing}
 .rw .no{width:20px;flex:0 0 20px;text-align:center;font-size:10px;
@@ -1085,12 +1087,17 @@ function renderRuns(){
     S.runs.splice(+el.dataset.del,1);
     S.active=Math.max(0,Math.min(S.active,S.runs.length-1));
     renderRuns(); renderStyles(); renderSyms(); render();});
-  R.querySelectorAll('.grip').forEach(grip=>grip.addEventListener('pointerdown',e=>{
+  // 拖拽排序：只用最基础的 mousedown/mousemove/mouseup（挂在 window 上，不是抓手
+  // 元素自己），不依赖 setPointerCapture —— 那套在部分内嵌浏览器/webview 里不可靠，
+  // 表现就是抓手指针形状对了、但既不触发拖动，鼠标划过还会把旁边几行文字选中。
+  R.querySelectorAll('.grip').forEach(grip=>grip.onmousedown=e=>{
+    if(e.button!==0) return;
+    e.preventDefault();
     const dragEl=grip.closest('.rw'), startIdx=+dragEl.dataset.row, box=$('dockbody');
     dragEl.classList.add('dragging');
-    grip.setPointerCapture(e.pointerId);
+    R.classList.add('dragging-active'); // 顺带关掉整份列表的文字选中，拖过别的行不会高亮选中文字
     // 拖动过程中只挪 DOM 位置、不动 S.runs——重排数据会触发 renderRuns() 整表重画，
-    // 抓手元素被销毁，pointer capture 也就跟着丢了。真正的数组重排放到松手那一刻一次性做。
+    // 抓手元素被销毁，事件监听也就跟着丢了。真正的数组重排放到松手那一刻一次性做。
     const onMove=ev=>{
       const rows=[...R.querySelectorAll('.rw')].filter(el=>el!==dragEl);
       let target=null;
@@ -1103,19 +1110,18 @@ function renderRuns(){
       if(ev.clientY<br.top+edge) box.scrollTop-=12;
       else if(ev.clientY>br.bottom-edge) box.scrollTop+=12;
     };
-    const onUp=ev=>{
-      grip.releasePointerCapture(ev.pointerId);
-      grip.removeEventListener('pointermove',onMove);
-      grip.removeEventListener('pointerup',onUp);
+    const onUp=()=>{
+      window.removeEventListener('mousemove',onMove);
+      window.removeEventListener('mouseup',onUp);
+      R.classList.remove('dragging-active');
       const order=[...R.querySelectorAll('.rw')].map(el=>+el.dataset.row);
       S.runs=order.map(i=>S.runs[i]);
       S.active=order.indexOf(startIdx);
       renderRuns(); renderStyles(); renderSyms(); render();
     };
-    grip.addEventListener('pointermove',onMove);
-    grip.addEventListener('pointerup',onUp);
-    e.preventDefault();
-  }));
+    window.addEventListener('mousemove',onMove);
+    window.addEventListener('mouseup',onUp);
+  });
 }
 function tintRuns(){
   const cs=cells(); let i0=0; const st=[];
