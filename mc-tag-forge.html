@@ -48,11 +48,21 @@ header.masthead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
 
 /* ── 顶部固定区：实时 tooltip + 段落编辑 ── */
 .dock{position:sticky;top:0;z-index:40;background:var(--void);
-  padding:12px 0 11px;border-bottom:1px solid var(--line)}
+  padding:12px 0 4px}
 .dock.collapsed .dockbody{display:none}
 .dockbody{margin-top:9px;max-height:44vh;overflow-y:auto}
 .addrow{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
-.addrow .hint{font-size:11px;color:var(--ink-faint)}
+.addrow .hint{font-size:11px;color:var(--ink-faint);display:inline-flex;align-items:center;gap:5px}
+.infowrap{position:relative;display:inline-flex}
+.infoicon{width:14px;height:14px;flex:0 0 14px;border-radius:50%;border:1px solid var(--ember);
+  display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;
+  font-style:normal;color:var(--ember);cursor:pointer;line-height:1}
+.infoicon:hover{background:var(--ember);color:#210b02}
+.tip-pop{position:fixed;z-index:100;width:260px;max-width:70vw;
+  background:var(--panel);border:1px solid var(--ember);border-radius:6px;padding:10px 12px;
+  font-size:11.5px;color:var(--ink-dim);line-height:1.6;box-shadow:0 6px 20px rgba(0,0,0,.45);
+  display:none}
+.tip-pop.show{display:block}
 .tooltip{padding:8px 10px 10px;min-height:84px}
 .tt-name{font-size:0;word-break:break-word}
 .tt-name span{font-size:24px}
@@ -75,7 +85,7 @@ header.masthead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
   display:inline-block}
 .dot2 .w.on .dot{border-color:var(--ember);background:var(--ember)}
 
-h2.sec{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+h2.sec{font-size:14px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
   color:var(--ink-faint);margin:24px 0 8px;display:flex;align-items:center;gap:10px}
 h2.sec::after{content:"";flex:1;height:1px;background:var(--line)}
 
@@ -181,6 +191,11 @@ textarea.out.edited{border-color:var(--mc-gold)}
   border:1px solid var(--line);padding:4px 6px 4px 0}
 .rw:hover{border-color:#402650}
 .rw.active{border-color:var(--ember);box-shadow:inset 3px 0 0 var(--ember)}
+.rw.dragging{opacity:.45;border-color:var(--ember)}
+.rw .grip{flex:0 0 16px;width:16px;text-align:center;font-size:13px;line-height:1;
+  color:var(--ink-faint);cursor:grab;user-select:none;touch-action:none;margin-left:2px}
+.rw .grip:hover{color:var(--ink)}
+.rw .grip:active{cursor:grabbing}
 .rw .no{width:20px;flex:0 0 20px;text-align:center;font-size:10px;
   font-family:ui-monospace,Consolas,monospace;font-weight:700}
 .rw input[type=text]{flex:1 1 110px;min-width:80px;font-size:14px;padding:4px 7px;border-color:#2c1638}
@@ -219,11 +234,6 @@ textarea.out.edited{border-color:var(--mc-gold)}
 .chip i{width:14px;height:14px;display:block;border:1px solid rgba(255,255,255,.25)}
 .pkinfo{font-family:ui-monospace,Consolas,monospace;font-size:12px;min-width:150px}
 .pkinfo .eff{font-size:10px;color:var(--ink-faint);display:block;margin-top:3px}
-
-/* ── 顶层模式切换 ── */
-.modes{display:flex;gap:0;margin:16px 0 4px;border-bottom:1px solid var(--line)}
-.modes .hint{align-self:center;font-size:11px;color:var(--ink-faint);
-  padding-bottom:6px}
 
 /* ── 截图逆推 ── */
 .srcwrap{position:relative;display:inline-block;max-width:100%}
@@ -301,16 +311,17 @@ textarea.out.edited{border-color:var(--mc-gold)}
     <div class="rl" id="runs"></div>
     <div class="addrow">
       <button id="addRun">+ 加一段</button>
-      <span class="hint" id="addRunHint">想让某些表情换单色不参与渐变，或让某些字单独用不同的花体？加一段——但容易超字数上限，谨慎使用</span>
+      <span class="hint" id="addRunHint">
+        <span id="addRunHintTxt">想让某些表情换单色不参与渐变，或让某些字单独用不同的花体？加一段——但容易超字数上限，谨慎使用</span>
+        <span class="infowrap">
+          <span class="infoicon" id="segInfoBtn" title="更多说明">!</span>
+          <div class="tip-pop" id="segInfoPop">每段可以有自己的花体和格式，渐变默认是全局一条、按字符切给各段。
+            点段落行末的「镜」可以让某一段跳出全局渐变，自己反向跑一遍色标（例如前段红→蓝，镜像的后段就是蓝→红）。
+            花体只改显示，不写回原文。<b>每多一段大约多 12 个字符</b>，看输出栏的长度计。</div>
+        </span>
+      </span>
     </div>
   </div>
-</div>
-<div class="note" id="dockNote" style="margin-bottom:2px">每段可以有自己的花体和格式，渐变默认是全局一条、按字符切给各段。
-点段落行末的「镜」可以让某一段跳出全局渐变，自己反向跑一遍色标（例如前段红→蓝，镜像的后段就是蓝→红）。
-花体只改显示，不写回原文。<b>每多一段大约多 12 个字符</b>，看输出栏的长度计。</div>
-
-<div class="modes">
-  <span class="hint" id="modeHint">做自己的标签</span>
 </div>
 
 <div id="viewR" style="display:none">
@@ -1027,6 +1038,7 @@ function renderRuns(){
 
   $('runs').innerHTML=S.runs.map((r,i)=>{
     return `<div class="rw${S.active===i?' active':''}" data-row="${i}">
+      <span class="grip" title="${t('拖动排序','Drag to reorder')}">⠿</span>
       <span class="no" style="color:${st[i+off]||'#888'}">${i+1}</span>
       <input type="text" data-t="${i}" value="${esc(r.t)}" spellcheck="false" placeholder="${t('这一段的文字','This segment\'s text')}">
       <span class="fmts">${FKEYS.map(k=>
@@ -1073,6 +1085,37 @@ function renderRuns(){
     S.runs.splice(+el.dataset.del,1);
     S.active=Math.max(0,Math.min(S.active,S.runs.length-1));
     renderRuns(); renderStyles(); renderSyms(); render();});
+  R.querySelectorAll('.grip').forEach(grip=>grip.addEventListener('pointerdown',e=>{
+    const dragEl=grip.closest('.rw'), startIdx=+dragEl.dataset.row, box=$('dockbody');
+    dragEl.classList.add('dragging');
+    grip.setPointerCapture(e.pointerId);
+    // 拖动过程中只挪 DOM 位置、不动 S.runs——重排数据会触发 renderRuns() 整表重画，
+    // 抓手元素被销毁，pointer capture 也就跟着丢了。真正的数组重排放到松手那一刻一次性做。
+    const onMove=ev=>{
+      const rows=[...R.querySelectorAll('.rw')].filter(el=>el!==dragEl);
+      let target=null;
+      for(const row of rows){
+        const r=row.getBoundingClientRect();
+        if(ev.clientY < r.top+r.height/2){ target=row; break; }
+      }
+      target ? R.insertBefore(dragEl,target) : R.appendChild(dragEl);
+      const br=box.getBoundingClientRect(), edge=28;
+      if(ev.clientY<br.top+edge) box.scrollTop-=12;
+      else if(ev.clientY>br.bottom-edge) box.scrollTop+=12;
+    };
+    const onUp=ev=>{
+      grip.releasePointerCapture(ev.pointerId);
+      grip.removeEventListener('pointermove',onMove);
+      grip.removeEventListener('pointerup',onUp);
+      const order=[...R.querySelectorAll('.rw')].map(el=>+el.dataset.row);
+      S.runs=order.map(i=>S.runs[i]);
+      S.active=order.indexOf(startIdx);
+      renderRuns(); renderStyles(); renderSyms(); render();
+    };
+    grip.addEventListener('pointermove',onMove);
+    grip.addEventListener('pointerup',onUp);
+    e.preventDefault();
+  }));
 }
 function tintRuns(){
   const cs=cells(); let i0=0; const st=[];
@@ -1256,6 +1299,20 @@ function copy(s,m){navigator.clipboard.writeText(s).then(()=>toast(m),()=>{
   ta.select();document.execCommand('copy');ta.remove();toast(m);});}
 
 $('addRun').onclick=addRun;
+$('segInfoBtn').onclick=e=>{
+  e.stopPropagation();
+  const pop=$('segInfoPop'), willShow=!pop.classList.contains('show');
+  if(willShow){
+    // position:fixed 定位算在图标正下方，这样才能跳出 dockbody 的 overflow-y:auto，
+    // 不然弹层会被那个限高滚动框裁掉一半（之前 position:absolute 就是这么被切的）。
+    const r=$('segInfoBtn').getBoundingClientRect(), vw=window.innerWidth||1200;
+    const w=Math.min(260, vw*0.7);
+    let left=r.left; if(left+w>vw-8) left=vw-8-w; if(left<8) left=8;
+    pop.style.left=left+'px'; pop.style.top=(r.bottom+6)+'px';
+  }
+  pop.classList.toggle('show',willShow);
+};
+window.addEventListener('click',()=>$('segInfoPop').classList.remove('show'));
 $('dockToggle').onclick=()=>{
   const c=$('dock').classList.toggle('collapsed');
   $('dockToggle').textContent=c?t('展开段落','Expand Segments'):t('收起段落','Collapse Segments');
@@ -2197,7 +2254,6 @@ function setMode2(m){
   $('viewC').style.display=R?'none':'';
   $('tabR').classList.toggle('on',R);
   $('tabC').classList.toggle('on',!R);
-  $('modeHint').textContent=R?t('读别人的标签，取出配色','Read someone else\'s tag, extract the colors'):t('做自己的标签','Make your own tag');
   // 逆推跟"创作"预览（顶部 tooltip + lore + 段落编辑）完全无关，整块收起来。
   // 之前只收起 .dockbody（段落行），.tip.tooltip 那块名字/lore 预览没跟着藏，
   // 逆推时还会露出上一次在创作模式编辑的内容，容易看混。
@@ -2230,7 +2286,7 @@ const STATIC_I18N=[
  ['headerSub','段落 · 花体 · 符号 · 渐变 · EssentialsX 代码','Segments · Fancy Text · Symbols · Gradient · EssentialsX Code'],
  ['loreToggle','lore 参照','Lore Preview'],
  ['addRun','+ 加一段','+ Add Segment'],
- ['addRunHint','想让某些表情换单色不参与渐变，或让某些字单独用不同的花体？加一段——但容易超字数上限，谨慎使用',
+ ['addRunHintTxt','想让某些表情换单色不参与渐变，或让某些字单独用不同的花体？加一段——但容易超字数上限，谨慎使用',
   'Want a symbol to stay a flat color instead of following the gradient, or give some characters their own fancy text? Add a segment — but it eats into the character limit fast, so use sparingly'],
  ['tabC','创作','Create'],
  ['tabR','逆推','Extract'],
@@ -2260,7 +2316,7 @@ const STATIC_I18N=[
  ['bImport','导入（粘贴 JSON）','Import (Paste JSON)'],
 ];
 const STATIC_HTML_I18N=[
- ['dockNote',
+ ['segInfoPop',
    `每段可以有自己的花体和格式，渐变默认是全局一条、按字符切给各段。
     点段落行末的「镜」可以让某一段跳出全局渐变，自己反向跑一遍色标（例如前段红→蓝，镜像的后段就是蓝→红）。
     花体只改显示，不写回原文。<b>每多一段大约多 12 个字符</b>，看输出栏的长度计。`,
@@ -2312,9 +2368,6 @@ function applyLang(){
   $('glyphPix').querySelector('.lbl').textContent=t('像素','Pixel');
   const collapsed=$('dock').classList.contains('collapsed');
   $('dockToggle').textContent=collapsed?t('展开段落','Expand Segments'):t('收起段落','Collapse Segments');
-  $('modeHint').textContent = $('tabR').classList.contains('on')
-    ? t('读别人的标签，取出配色','Read someone else\'s tag, extract the colors')
-    : t('做自己的标签','Make your own tag');
   auditStyles();
   renderGradPresetOptions();
   renderRuns(); renderStops(); renderSyms(); render(); renderPresets();

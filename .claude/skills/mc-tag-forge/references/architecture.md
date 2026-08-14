@@ -139,7 +139,7 @@ detectScale → extractGlyphs → fitStops → (用户填文字) → shotCode / 
 - **两个坑**：
   1. 模块顶层 `const` 如果在定义时就调 `t(...)`（比如 `const STOPLABEL={2:[t('起','Start'),...]}`），只会在脚本加载那一刻求值一次，之后切语言不会重新跑，会卡死在启动时的语言上。必须存成 `{zh:[...],en:[...]}` 两套，取用时按 `S.lang` 查，不能在定义处直接调 `t()`。
   2. 引入全局 `t()` 之后，几个函数原本用 `t` 当局部变量名（`newRun(t)`、`hsv2hex` 内部、`lerp(a,b,t)`、`toast` 里的 DOM 元素）——这些是**参数/局部变量遮蔽**，虽然函数体没调全局 `t()` 所以当时没坏，但极易在后续维护里踩到"改了这个函数却发现 t() 不生效"。已经全部改名（`newRun(txt)`、`lerp(a,b,pt)` 等）。以后新写函数**不要再用 `t` 当参数名**。
-- **切换流程**：`applyLang()` 依次做——设置按钮文案、跑 `applyStaticI18n()`、手动同步几个不经过标准 render 流程的动态按钮文案（`fontToggle`/`dockToggle`/`modeHint`，这些平时由各自的 onclick handler 维护，不在 `render()` 里）、重新跑 `auditStyles()`/`renderGradPresetOptions()`/`renderRuns()`/`renderStops()`/`renderSyms()`/`render()`/`renderPresets()`，如果逆推面板正开着（`SHOT&&SHOT.img`）额外调 `reExtract()` 整块重建（`renderShot()` 的模板字符串太大，重新提取一遍比单独维护一套"只换文字"的补丁便宜）。
+- **切换流程**：`applyLang()` 依次做——设置语言胶囊/主标题、跑 `applyStaticI18n()`、手动同步几个不经过标准 render 流程的动态按钮文案（`dockToggle`/`glyphSys`/`glyphPix`，这些平时由各自的 onclick handler 维护，不在 `render()` 里）、重新跑 `auditStyles()`/`renderGradPresetOptions()`/`renderRuns()`/`renderStops()`/`renderSyms()`/`render()`/`renderPresets()`，如果逆推面板正开着（`SHOT&&SHOT.img`）额外调 `reExtract()` 整块重建（`renderShot()` 的模板字符串太大，重新提取一遍比单独维护一套"只换文字"的补丁便宜）。
 
 ## 10. 像素字形引擎（Unifont 子集）
 
