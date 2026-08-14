@@ -9,7 +9,7 @@
   --void:#0a010c; --tip-bg:#100110; --tip-edge:#24015b; --panel:#17081f;
   --panel-hi:#1f0d2a; --line:#2c1638; --ink:#e8dff0; --ink-dim:#9a8fa8;
   --ink-faint:#6b5f7a; --ember:#f37c52; --deep:#2f5b8b;
-  --mc-green:#55ff55; --mc-red:#ff5555; --mc-gold:#ffaa00; --mc-aqua:#55ffff;
+  --mc-green:#55ff55; --mc-red:#ff5555; --mc-gold:#ffaa00; --mc-aqua:#55ffff; --mc-blue:#5555ff;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -68,9 +68,14 @@ header.masthead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
 .tooltip{padding:8px 10px 10px;min-height:84px}
 .tt-name{font-size:0;word-break:break-word}
 .tt-name span{font-size:24px}
-.tt-lore{margin-top:8px;font-size:13px;color:#a8a8a8;line-height:1.7}
-.tt-lore i{color:var(--mc-green);font-style:normal}
-.tt-lore u{color:var(--mc-aqua);text-decoration:none}
+/* 行高/字距按截图里游戏内 tooltip 的紧凑排布收窄——原来 1.7 倍行高、默认字距是给
+   一般说明文字用的宽松排版，跟游戏内挤在一起的效果差太远。这里没有能算出"标准值"的
+   公式，是照着截图目视调的，不是手算数字出错，跟长度/色值那种必须代码算的东西不是一回事。 */
+.tt-lore{margin-top:6px;font-size:13px;color:#a8a8a8;line-height:1.42;letter-spacing:.01em;
+  font-family:"Segoe UI Symbol","Noto Sans Symbols 2","Apple Symbols","Segoe UI Historic","Segoe UI",system-ui,sans-serif}
+/* 系统字体模式用这个 div，像素模式换成 #loreCanvas——跟顶部名字预览 #pv/#pvCanvas
+   同一套二选一显示逻辑，都是 setGlyphPixel/render() 里一起切换。 */
+#loreCanvas{display:none;image-rendering:pixelated;max-width:100%}
 .mcfont{letter-spacing:.06em;
   font-family:"Segoe UI Symbol","Noto Sans Symbols 2","Apple Symbols","Segoe UI Historic","Segoe UI",system-ui,sans-serif}
 .mcfont.pixel{letter-spacing:.1em;
@@ -327,13 +332,14 @@ textarea.out.edited{border-color:var(--mc-gold)}
     <div class="tt-name mcfont" id="pv"></div>
     <canvas id="pvCanvas"></canvas>
     <div class="tt-lore" id="lore">
-      <div>Power VI</div><div><i>◆ Hellfire V</i></div><div><u>Tier: LEGENDARY</u></div>
+      <div id="loreText"></div>
+      <canvas id="loreCanvas"></canvas>
     </div>
   </div>
   <div class="stage-bar">
     <div class="dot2" id="glyphPick">
-      <span class="w on" data-v="sys" id="glyphSys"><span class="dot"></span><span class="lbl">系统</span></span>
-      <span class="w" data-v="pix" id="glyphPix"><span class="dot"></span><span class="lbl">像素</span></span>
+      <span class="w" data-v="sys" id="glyphSys"><span class="dot"></span><span class="lbl">系统</span></span>
+      <span class="w on" data-v="pix" id="glyphPix"><span class="dot"></span><span class="lbl">像素</span></span>
     </div>
     <button id="loreToggle" class="on">lore 参照</button>
     <span class="grow"></span>
@@ -721,7 +727,7 @@ const S={
   runs:[newRun('「Takodachi 🐙 Prime」')], active:0,
   wrap:0, wrapPage:0, myWraps:[], starred:[], nStops:2, cuts:[], cap:50, pk:0,
   stops:['#f37c52','#8860c6','#5555ff','#2f5b8b'],
-  enc:'hex3', pixel:false, lore:true, presets:[], cat:'括号', codeEdit:null,
+  enc:'hex3', pixel:true, lore:true, presets:[], cat:'括号', codeEdit:null,
   shotText:'', shotStyle:null, shotFit:0, shotPk:0, shotCustom:null,
   shotFmt:{l:0,o:0,n:0,m:0,k:0}, shotEdit:null, shotCrop:null,
   lang:'zh',
@@ -1076,6 +1082,66 @@ function drawPixelPreview(cs){
     x+=fullW+GAP;
   });
 }
+/* 参照 lore（名字下面那一小块示例文字）只有这一份数据来源，系统字体和像素字体
+   都从这里生成，不会出现"改了系统字体那份文字，忘了改像素那份"这种对不上。
+   每行是一串"片段"（同一行里颜色/粗细可以不一样，比如"» Attack Damage: "是灰的、
+   后面的"11"是白的），不再是整行一个颜色。 */
+const LORE_REF=[
+  [{t:'Infinity', c:'#a8a8a8'}],
+  [{t:'Sniper V', c:'#5555ff'}],
+  [{t:'» Attack Damage: ', c:'#a8a8a8'},{t:'11', c:'#ffffff'}],
+  [{t:'Tier: ', c:'#ffffff'},{t:'LEGENDARY', c:'#55ffff', bold:true}],
+];
+function loreChars(){
+  return LORE_REF.map(segs=>segs.flatMap(s=>
+    [...s.t].map(ch=>({ch, c:s.c, bold:!!s.bold, italic:!!s.italic}))));
+}
+function drawLoreCanvas(canvas){
+  // 用固定 SCALE=1（顶部名字预览是 SCALE=2），字号本来就该比名字小一档，
+  // 不用再另外算缩放比例。粗体用跟名字预览同一招——正常位置画一遍、右移 1px 再画一遍。
+  const SCALE=1, GAP=SCALE, ROWH=16*SCALE, LGAP=2*SCALE, PAD=SCALE;
+  const rows=loreChars();
+  const widths=rows.map(chars=>chars.reduce((a,o)=>{
+    const g=GLYPHS.map.get(o.ch.codePointAt(0));
+    return a+(g?g.width:8)*SCALE+(o.bold?SCALE:0)+GAP;
+  },0));
+  canvas.width=Math.max(1,Math.max(...widths));
+  canvas.height=rows.length*(ROWH+LGAP)+PAD*2-LGAP;
+  const ctx=canvas.getContext('2d');
+  ctx.imageSmoothingEnabled=false;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  rows.forEach((chars,li)=>{
+    const y=PAD+li*(ROWH+LGAP);
+    let x=0;
+    chars.forEach(o=>{
+      const cp=o.ch.codePointAt(0), sh=rgb2hex(hex2rgb(o.c).map(v=>v*0.25));
+      const passes=o.bold?[0,SCALE]:[0];
+      passes.forEach(bx=>drawGlyph(ctx,cp,x+SCALE+bx,y+SCALE,SCALE,sh,o.italic));
+      let w=8*SCALE;
+      passes.forEach(bx=>{ w=drawGlyph(ctx,cp,x+bx,y,SCALE,o.c,o.italic)*SCALE; });
+      x+=w+(o.bold?SCALE:0)+GAP;
+    });
+  });
+}
+function renderLoreRef(){
+  const textEl=$('loreText'), canvas=$('loreCanvas');
+  if(!textEl||!canvas) return;
+  if(S.pixel){
+    textEl.style.display='none'; canvas.style.display='block';
+    drawLoreCanvas(canvas);
+  } else {
+    canvas.style.display='none'; textEl.style.display='';
+    textEl.innerHTML=LORE_REF.map(segs=>{
+      const inner=segs.map(s=>{
+        const st=[`color:${s.c}`];
+        if(s.bold) st.push('font-weight:700');
+        if(s.italic) st.push('font-style:italic');
+        return `<span style="${st.join(';')}">${esc(s.t)}</span>`;
+      }).join('');
+      return `<div>${inner}</div>`;
+    }).join('');
+  }
+}
 function paintPreview(){
   // 手改过输出代码之后，预览要跟着手改的内容走（用 parseCode 把代码解回逐字色/格式），
   // 不然预览还停在旧设计上，跟你刚打进输出框的代码对不上，等于白改。
@@ -1107,6 +1173,7 @@ function paintPreview(){
 function render(){
   const cs=paintPreview();
   $('lore').style.display=S.lore?'':'none';
+  renderLoreRef();
   $('ramp').innerHTML=cs.map(o=>`<div style="background:${o.col}"></div>`).join('');
   $('hexlist').innerHTML=cs.map(o=>
     `<span style="border-color:${o.col}">${o.col.slice(1).toUpperCase()}</span>`).join(' ');
