@@ -14,6 +14,7 @@
 8. 测试方法
 9. 双语（中/EN）
 10. 像素字形引擎（Unifont 子集）
+11. 区域折叠
 
 ---
 
@@ -152,3 +153,13 @@ detectScale → extractGlyphs → fitStops → (用户填文字) → shotCode / 
 - **缺字形**：理论上不会发生（码位表已覆盖全部用到的字符），万一发生就画一个空心方框占位，不静默跳过——跳过会让用户以为字符消失了。
 - **`paintPreview()` 分支**：`S.pixel` 为真时隐藏 `#pv`、显示 `#pvCanvas` 并调 `drawPixelPreview`；否则走原来的 innerHTML 文字方案。**目前只接了创作模式顶部这一个预览**，逆推面板的「复刻效果」（`renderRepro()`/`#repro`）还是旧的文字方案，没有跟着换成位图——如果要保持两边观感一致，这是下一步。
 - **测试桩踩过的坑**：`tests/lib/dom.js` 原来的 `document.getElementById` 桩，`getContext()` 每次都 `makeCanvas()` 生成一个全新、跟外层元素不相干的画布，外面设的 `canvas.width/height` 对内部实际画图用的对象毫无影响，`fillRect` 循环直接空转但不报错——这种"跑起来不报错但什么都没测到"的桩，比直接报错更危险。改法：`makeCanvas(target)` 接收一个已有对象直接把画布能力挂上去，`mk()` 生成 stub 时 `getContext(kind){ return makeCanvas(el).getContext(kind); }` 绑定回 `el` 自己。
+
+## 11. 区域折叠
+
+`花体`/`符号`/`包裹`/`渐变`/`预设`这 5 个 `<h2 class="sec">` 标题可以点击收起/展开对应的 `.panel`；**`输出`故意不在这 5 个里**——它要实时反映前面几个区域的每一次改动（改设计后字数够不够放），收起了等于把工具最核心的即时反馈弄丢了。
+
+- **名单**：`COLLAPSIBLE_SECS`（5 个 id 的数组），启动时给这 5 个标题各加一个 `.toggle` class 并挂 `onclick`；`secOutput` 从来不加 `.toggle`，所以没有箭头、没有 cursor:pointer、点了没反应。
+- **箭头图标用 `::before` 不是插入 `<span>`**——标题文字是 `STATIC_I18N` 里 `applyStaticI18n()` 整段 `textContent=` 覆盖的，切语言时会把子元素一起冲掉；`::after` 又已经被装饰用的那条横线占用了，所以箭头只能落在 `::before`。CSS：`h2.sec.toggle.collapsed + .panel{display:none}`（相邻兄弟选择器，`.panel` 在 HTML 里紧跟在对应 `<h2>` 后面，没有额外包裹层）。
+- **状态存储**：`collapsedSecs` 是模块级 `const Set`，**只用 `clear()+add()` 改内容，绝不整个重新赋值**——重新赋值只是换掉这个变量名指向的对象，任何提前拿到旧引用的地方就跟着脱节了（`tests/collapse.test.js` 一开始就是因为 `loadCollapsedSecs()` 写成 `collapsedSecs=new Set(...)` 才踩到：测试桩用 `module.exports` 导出的是加载那一刻的引用快照，重新赋值后测试手上还是旧对象）。落盘复用预设同一套 `store` 适配器，key 是 `mc-tag-forge:collapsedSecs`，故意不进 `S`（进了 `S` 会被预设 JSON 一起导出，分享给别人时多一堆无关的开合标记）。
+- **默认全展开**：没存过的 id 不在 `collapsedSecs` 里，`applyCollapsedSecs()` 只给存过的加 `.collapsed`，别的保持原样。
+- **可发现性（2026-08-15）**：用户反馈箭头太小、看不出标题能点。加了两层：① 箭头本身放大、上色成 `--ember`（跟其他可点元素的高亮色一致），标题整行加 hover 高亮（`border`+`background:var(--panel-hi)`），让整条标题看起来像个可点的控件而不是纯装饰文字；② 原生 `title` 属性兜底（`点击收起/展开`），`title` 是独立属性不会被 `applyStaticI18n()` 的 `textContent=` 冲掉，但切语言后需要更新文字，所以 `applyCollapsedSecs()` 也加进了 `applyLang()` 的重刷列表（幂等，重复调用无副作用）。

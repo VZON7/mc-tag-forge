@@ -95,6 +95,15 @@ header.masthead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
 h2.sec{font-size:14px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
   color:var(--ink-faint);margin:14px 0 6px;display:flex;align-items:center;gap:10px}
 h2.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+/* 折叠箭头用 ::before 不用真的插一个 <span>——标题的中英文文字是靠
+   applyStaticI18n() 整段 textContent= 覆盖的，塞进去的子元素会被一起冲掉。
+   ::after 已经被那条装饰横线占用了，箭头只能用 ::before。 */
+h2.sec.toggle{cursor:pointer;user-select:none;padding:4px 6px;border-radius:3px;
+  border:1px solid transparent}
+h2.sec.toggle:hover{color:var(--ink-dim);border-color:var(--line);background:var(--panel-hi)}
+h2.sec.toggle::before{content:"▾";font-size:15px;font-weight:400;color:var(--ember)}
+h2.sec.toggle.collapsed::before{content:"▸"}
+h2.sec.toggle.collapsed + .panel{display:none}
 
 label.f{display:block;font-size:11px;color:var(--ink-dim);margin-bottom:5px}
 textarea,input[type=text],select{width:100%;background:var(--void);color:var(--ink);
@@ -1609,6 +1618,45 @@ $('dockToggle').onclick=()=>{
   const c=$('dock').classList.toggle('collapsed');
   $('dockToggle').textContent=c?t('展开段落','Expand Segments'):t('收起段落','Collapse Segments');
   $('dockToggle').classList.toggle('on',c);};
+
+/* 区域折叠：花体/符号/包裹/渐变/预设可以收起，输出不行——输出要实时反映
+   前面几个区域的每一次改动（字数够不够放），收起了就得来回点开看，等于把
+   工具最核心的即时反馈弄丢了。折叠状态是纯 UI 偏好，跟标签内容设计无关，
+   故意不进 S（进了 S 会被预设 JSON 带出去，分享给别人时多一堆莫名其妙的
+   开合标记），单独存一个 key，复用预设同一套 storage 适配器。 */
+const COLLAPSIBLE_SECS=['secStyles','secSymbols','secWrap','secGradient','secPresets'];
+const COLLAPSE_KEY='mc-tag-forge:collapsedSecs';
+const collapsedSecs=new Set();
+// 改 Set 内容用 clear()+add()，不整个重新赋值——重新赋值只会换掉这个变量名指向的
+// 对象，任何提前拿到旧引用的地方就跟着脱节了（测试桩用 module.exports 导出的
+// 正是加载那一刻的引用快照，最容易踩到这个）。
+function loadCollapsedSecs(){
+  const raw=store.get(COLLAPSE_KEY); if(!raw) return;
+  try{
+    const a=JSON.parse(raw);
+    if(Array.isArray(a)){ collapsedSecs.clear(); a.filter(id=>COLLAPSIBLE_SECS.includes(id)).forEach(id=>collapsedSecs.add(id)); }
+  }catch(e){}
+}
+function saveCollapsedSecs(){ store.set(COLLAPSE_KEY, JSON.stringify([...collapsedSecs])); }
+function applyCollapsedSecs(){
+  COLLAPSIBLE_SECS.forEach(id=>{
+    const h=$(id); if(!h) return;
+    h.classList.add('toggle');
+    h.classList.toggle('collapsed', collapsedSecs.has(id));
+    // 箭头够小，容易被忽略，原生 title 提示是免费的兜底——鼠标停久一点总能看到。
+    // title 是独立属性，不会被 applyStaticI18n() 的 textContent= 冲掉，换语言时
+    // 靠 applyLang() 里再调一次这个函数来更新文字。
+    h.title=t('点击收起/展开','Click to expand/collapse');
+  });
+}
+COLLAPSIBLE_SECS.forEach(id=>{
+  const h=$(id); if(!h) return;
+  h.onclick=()=>{
+    const c=h.classList.toggle('collapsed');
+    if(c) collapsedSecs.add(id); else collapsedSecs.delete(id);
+    saveCollapsedSecs();
+  };
+});
 function setGlyphPixel(v){
   S.pixel=v;
   $('glyphSys').classList.toggle('on',!v);
@@ -2677,7 +2725,7 @@ function applyLang(){
   $('dockToggle').textContent=collapsed?t('展开段落','Expand Segments'):t('收起段落','Collapse Segments');
   auditStyles();
   renderGradPresetOptions();
-  renderRuns(); renderStops(); renderSyms(); render(); renderPresets();
+  renderRuns(); renderStops(); renderSyms(); render(); renderPresets(); applyCollapsedSecs();
   if(SHOT&&SHOT.img) reExtract();   // 逆推面板整块重建，跟着换语言
   syncStickyOffsets(); // 中英文标题宽度不同，换语言后标题栏高度可能变，重新量一次
 }
@@ -2686,6 +2734,7 @@ $('langEn').onclick=()=>{ S.lang='en'; applyLang(); };
 
 loadPresets(); savePresets();   // savePresets 顺带探测存储可用性
 loadMyWraps(); loadStarred();
+loadCollapsedSecs(); applyCollapsedSecs();
 setMode2('C');
 applyLang();
 </script>
