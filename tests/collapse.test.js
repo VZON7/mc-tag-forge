@@ -45,4 +45,33 @@ M.MEM[COLLAPSE_KEY] = JSON.stringify(['secStyles', 'secOutput', '乱写的id']);
 M.loadCollapsedSecs();
 t.eq('未知 id（包括 secOutput 本身）会被过滤掉，只留认识的', [...M.collapsedSecs].join(','), 'secStyles');
 
+/* 一键折叠按钮：之前只测过 applyCollapsedSecs/loadCollapsedSecs 这些状态函数，
+ * 从没真的模拟点一下按钮——secStyles 标题外面套了 .secHeadWrap 之后，.panel
+ * 不再是 h2 的下一个兄弟节点，第一版就是这么栽的，而这类"点了没反应"的问题
+ * 只测状态函数测不出来，必须真的调用 .onclick()。 */
+t.section('一键折叠按钮：模拟真实点击，不只测状态函数');
+M.collapsedSecs.clear();
+COLLAPSIBLE_SECS.forEach((id) => { dom.el(id).classList.add('toggle'); });
+M.applyCollapsedSecs();
+t.ok('按钮挂上了 onclick 处理函数', typeof dom.el('collapseAllBtn').onclick === 'function');
+
+dom.el('collapseAllBtn').onclick();
+t.ok('点一次后 5 个区块的标题都带上 collapsed', COLLAPSIBLE_SECS.every((id) => dom.el(id).classList.contains('collapsed')));
+t.eq('collapsedSecs 同步成全部 5 个', [...M.collapsedSecs].sort().join(','), COLLAPSIBLE_SECS.slice().sort().join(','));
+t.eq('按钮文字变成"全部展开"', dom.el('collapseAllBtn').textContent, '全部展开');
+
+dom.el('collapseAllBtn').onclick();
+t.ok('再点一次，5 个区块的 collapsed 都没了', COLLAPSIBLE_SECS.every((id) => !dom.el(id).classList.contains('collapsed')));
+t.eq('collapsedSecs 清空', M.collapsedSecs.size, 0);
+t.eq('按钮文字变回"全部收起"', dom.el('collapseAllBtn').textContent, '全部收起');
+
+t.section('混合状态：全部收起后手动展开一个，点一键折叠要能把它也收进去');
+dom.el('collapseAllBtn').onclick(); // 先全部收起
+dom.el('secSymbols').onclick(); // 手动展开其中一个
+t.ok('手动展开的那个区块不再是 collapsed', !dom.el('secSymbols').classList.contains('collapsed'));
+t.eq('按钮文字回到"全部收起"（因为不再是全收起状态）', dom.el('collapseAllBtn').textContent, '全部收起');
+dom.el('collapseAllBtn').onclick();
+t.ok('再点一键折叠，手动展开的那个也被收回去了', dom.el('secSymbols').classList.contains('collapsed'));
+t.ok('5 个区块又全部 collapsed', COLLAPSIBLE_SECS.every((id) => dom.el(id).classList.contains('collapsed')));
+
 module.exports = t.done();

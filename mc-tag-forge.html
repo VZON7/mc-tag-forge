@@ -104,6 +104,17 @@ h2.sec.toggle:hover{color:var(--ink-dim);border-color:var(--line);background:var
 h2.sec.toggle::before{content:"▾";font-size:15px;font-weight:400;color:var(--ember)}
 h2.sec.toggle.collapsed::before{content:"▸"}
 h2.sec.toggle.collapsed + .panel{display:none}
+/* "花体"标题外面套了 .secHeadWrap 之后，.panel 不再是 h2 的下一个兄弟节点了
+   （中间隔了一层 wrapper），上面那条 + 选择器对它失效——这也是"点花体标题、
+   点全部收起都没反应"的真正原因：class 确实切换了，只是没有 CSS 规则再听它的。
+   补一条认 wrapper 的规则，JS 那边把 collapsed 类同时打在 wrapper 上。 */
+.secHeadWrap.collapsed + .panel{display:none}
+/* 一键折叠按钮：不能塞进 <h2> 内部——那个标题的文字是靠 applyStaticI18n()
+   整段 textContent= 覆盖的，换语言的时候会把塞进去的子元素一起冲掉（见上面
+   ::before 那条注释，同一个坑）。改成外面套一层定位容器，按钮用 position:absolute
+   叠在标题那条装饰虚线的右端，跟"花体"标题视觉上还是同一行，不占用额外的行高。 */
+.secHeadWrap{position:relative}
+.secAllBtn{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:1}
 
 label.f{display:block;font-size:11px;color:var(--ink-dim);margin-bottom:5px}
 textarea,input[type=text],select{width:100%;background:var(--void);color:var(--ink);
@@ -381,7 +392,10 @@ textarea.out.edited{border-color:var(--mc-gold)}
 </div>
 
 <div id="viewC">
-<h2 class="sec" id="secStyles">花体 · 作用于当前选中的段</h2>
+<div class="secHeadWrap">
+  <h2 class="sec" id="secStyles">花体 · 作用于当前选中的段</h2>
+  <button id="collapseAllBtn" class="mini secAllBtn">全部收起</button>
+</div>
 <div class="panel">
   <div class="note" id="styleNote" style="margin:0 0 10px">
     <span class="badge b-safe">实测可用</span> 游戏内辨识度高；
@@ -1638,25 +1652,66 @@ function loadCollapsedSecs(){
   }catch(e){}
 }
 function saveCollapsedSecs(){ store.set(COLLAPSE_KEY, JSON.stringify([...collapsedSecs])); }
+// 「花体」标题外面套了 .secHeadWrap（放一键折叠按钮），.panel 就不再是 h2 的
+// 下一个兄弟节点了——CSS 的 h2...collapsed + .panel 规则够不到它，得把 collapsed
+// 类同时打在 wrapper 上，配合上面新增的 .secHeadWrap.collapsed + .panel 规则。
+// 没套 wrapper 的另外 4 个区块，h.parentElement 不是 .secHeadWrap，直接跳过。
+function syncSecWrap(h, collapsed){
+  const wrap=h.parentElement;
+  if(wrap && wrap.classList && wrap.classList.contains('secHeadWrap')) wrap.classList.toggle('collapsed', collapsed);
+}
 function applyCollapsedSecs(){
   COLLAPSIBLE_SECS.forEach(id=>{
     const h=$(id); if(!h) return;
     h.classList.add('toggle');
-    h.classList.toggle('collapsed', collapsedSecs.has(id));
+    const collapsed=collapsedSecs.has(id);
+    h.classList.toggle('collapsed', collapsed);
+    syncSecWrap(h, collapsed);
     // 箭头够小，容易被忽略，原生 title 提示是免费的兜底——鼠标停久一点总能看到。
     // title 是独立属性，不会被 applyStaticI18n() 的 textContent= 冲掉，换语言时
     // 靠 applyLang() 里再调一次这个函数来更新文字。
     h.title=t('点击收起/展开','Click to expand/collapse');
   });
+  syncCollapseAllBtn();
+}
+/* 一键折叠按钮的文字看当前是不是"5 个全收起"：没全收起→点它=全部收起；
+   已经全收起→点它=全部展开。不用两个按钮猜该显示哪个，单按钮自己判断。 */
+function syncCollapseAllBtn(){
+  const b=$('collapseAllBtn'); if(!b) return;
+  const allCollapsed=COLLAPSIBLE_SECS.every(id=>collapsedSecs.has(id));
+  b.textContent=allCollapsed?t('全部展开','Expand All'):t('全部收起','Collapse All');
+  b.title=t('一键收起/展开花体、符号、包裹、渐变、预设这几个区块','Collapse/expand all these panels at once');
 }
 COLLAPSIBLE_SECS.forEach(id=>{
   const h=$(id); if(!h) return;
   h.onclick=()=>{
     const c=h.classList.toggle('collapsed');
+    syncSecWrap(h, c);
     if(c) collapsedSecs.add(id); else collapsedSecs.delete(id);
     saveCollapsedSecs();
+    syncCollapseAllBtn();
   };
 });
+// 按钮是 .secHeadWrap 里 h2 的兄弟节点、不是 h2 的子节点，点它本来就不会冒泡
+// 触发 h2 自己的收起逻辑，不需要 stopPropagation。用 try/catch 兜底是因为上一版
+// 这个按钮在用户实际浏览器里点了完全没反应、代码看不出哪里错——先假设它可能在
+// 真实环境里抛了一个我这边测试环境测不出来的异常，用 toast 把异常内容显示出来，
+// 下次再"点了没反应"就不用再靠猜了。
+$('collapseAllBtn').onclick=()=>{
+  try{
+    const allCollapsed=COLLAPSIBLE_SECS.every(id=>collapsedSecs.has(id));
+    COLLAPSIBLE_SECS.forEach(id=>{
+      const h=$(id); if(!h) return;
+      h.classList.toggle('collapsed', !allCollapsed);
+      syncSecWrap(h, !allCollapsed);
+    });
+    if(allCollapsed) collapsedSecs.clear(); else COLLAPSIBLE_SECS.forEach(id=>collapsedSecs.add(id));
+    saveCollapsedSecs();
+    syncCollapseAllBtn();
+  }catch(e){
+    try{ toast('一键折叠出错：'+e.message); }catch(e2){}
+  }
+};
 function setGlyphPixel(v){
   S.pixel=v;
   $('glyphSys').classList.toggle('on',!v);
