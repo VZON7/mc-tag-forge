@@ -374,7 +374,7 @@ textarea.out.edited{border-color:var(--mc-gold)}
     <div class="rl" id="runs"></div>
   </div>
 </div>
-<div class="addrow">
+<div class="addrow" id="addrow">
   <button id="addRun">+ 加一段</button>
   <span class="hint" id="addRunHint">
     <span id="addRunHintTxt">想让某些表情换单色不参与渐变，或让某些字单独用不同的花体？加一段——但容易超字数上限，谨慎使用</span>
@@ -389,6 +389,7 @@ textarea.out.edited{border-color:var(--mc-gold)}
 
 <div id="viewR" style="display:none">
 <div class="panel">
+  <div class="note" id="extractPurpose" style="margin:0 0 10px">逆推：把游戏截图里的渐变色标签，拟合成最接近的颜色代码——是最相近的近似值，不是像素级精确复刻</div>
   <div class="drop" id="drop"><span id="dropHint">把截图拖进来，或 <b>Ctrl+V 直接粘贴</b>，或点这里选文件</span><br>
     <span style="font-size:11px" id="dropSub">不需要整数倍原图 —— 取色是缩放无关的</span></div>
   <input type="file" id="file" accept="image/*" style="display:none">
@@ -2672,6 +2673,12 @@ function setMode2(m){
   // 逆推时还会露出上一次在创作模式编辑的内容，容易看混。
   $('dock').style.display=R?'none':'';
   $('dock').classList.toggle('collapsed',R);
+  // "+加一段"跟它的说明文字之前挪到了 .dock 外面（为了不被"收起段落"带着一起藏），
+  // 结果逆推模式把 .dock 整块隐藏时，这一行反而被漏掉、留在外面——点它会往
+  // S.runs 里悄悄加一段看不见的空段，逆推模式根本用不上，等切回创作模式才会
+  // 冒出来一段莫名其妙的空行，看着像是 bug。逆推没有"段落"这个概念，这里跟
+  // .dock 一起隐藏。
+  $('addrow').style.display=R?'none':'';
   $('dockToggle').textContent=R?t('展开段落','Expand Segments'):t('收起段落','Collapse Segments');
   if(R&&SHOT) drawSource();
 }
@@ -2697,6 +2704,8 @@ window.addEventListener('paste',e=>{
    innerHTML 版给带 <b>/<span class=badge> 这类内嵌标签的说明用。 */
 const STATIC_I18N=[
  ['headerSub','段落 · 花体 · 符号 · 渐变 · EssentialsX 代码','Segments · Fancy Text · Symbols · Gradient · EssentialsX Code'],
+ ['extractPurpose','逆推：把游戏截图里的渐变色标签，拟合成最接近的颜色代码——是最相近的近似值，不是像素级精确复刻',
+  'Extract: turn a screenshot of an in-game gradient tag into the closest matching color code — an approximation, not a pixel-exact reproduction'],
  ['loreToggle','lore 参照','Lore Preview'],
  ['addRun','+ 加一段','+ Add Segment'],
  ['addRunHintTxt','想让某些表情换单色不参与渐变，或让某些字单独用不同的花体？加一段——但容易超字数上限，谨慎使用',
