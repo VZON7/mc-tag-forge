@@ -8,6 +8,9 @@ const dom = install();
 const M = loadTool(['COLLAPSIBLE_SECS', 'COLLAPSE_KEY', 'loadCollapsedSecs', 'saveCollapsedSecs',
   'applyCollapsedSecs', 'collapsedSecs', 'MEM']);
 const { COLLAPSIBLE_SECS, COLLAPSE_KEY } = M;
+// 面板显隐现在直接读写各自的 style.display（不再靠 CSS 的兄弟选择器猜），
+// 这里按 mc-tag-forge.html 里 SEC_PANEL_ID 同样的命名规则找到对应面板。
+const panelOf = (id) => dom.el(id + 'Panel');
 
 t.section('输出不在可折叠名单里——它要实时反映别的区域的改动，收起了就丢了核心反馈');
 t.ok('可折叠名单不含 secOutput', !COLLAPSIBLE_SECS.includes('secOutput'), COLLAPSIBLE_SECS.join(','));
@@ -57,11 +60,15 @@ t.ok('按钮挂上了 onclick 处理函数', typeof dom.el('collapseAllBtn').onc
 
 dom.el('collapseAllBtn').onclick();
 t.ok('点一次后 5 个区块的标题都带上 collapsed', COLLAPSIBLE_SECS.every((id) => dom.el(id).classList.contains('collapsed')));
+t.ok('对应的 5 个面板 style.display 也真的变成 none（不只是标题的 class）',
+  COLLAPSIBLE_SECS.every((id) => panelOf(id).style.display === 'none'));
 t.eq('collapsedSecs 同步成全部 5 个', [...M.collapsedSecs].sort().join(','), COLLAPSIBLE_SECS.slice().sort().join(','));
 t.eq('按钮文字变成"全部展开"', dom.el('collapseAllBtn').textContent, '全部展开');
 
 dom.el('collapseAllBtn').onclick();
 t.ok('再点一次，5 个区块的 collapsed 都没了', COLLAPSIBLE_SECS.every((id) => !dom.el(id).classList.contains('collapsed')));
+t.ok('5 个面板也都重新显示出来（style.display 不再是 none）',
+  COLLAPSIBLE_SECS.every((id) => panelOf(id).style.display !== 'none'));
 t.eq('collapsedSecs 清空', M.collapsedSecs.size, 0);
 t.eq('按钮文字变回"全部收起"', dom.el('collapseAllBtn').textContent, '全部收起');
 
@@ -69,9 +76,11 @@ t.section('混合状态：全部收起后手动展开一个，点一键折叠要
 dom.el('collapseAllBtn').onclick(); // 先全部收起
 dom.el('secSymbols').onclick(); // 手动展开其中一个
 t.ok('手动展开的那个区块不再是 collapsed', !dom.el('secSymbols').classList.contains('collapsed'));
+t.ok('它的面板也真的重新显示了', panelOf('secSymbols').style.display !== 'none');
 t.eq('按钮文字回到"全部收起"（因为不再是全收起状态）', dom.el('collapseAllBtn').textContent, '全部收起');
 dom.el('collapseAllBtn').onclick();
 t.ok('再点一键折叠，手动展开的那个也被收回去了', dom.el('secSymbols').classList.contains('collapsed'));
+t.ok('它的面板也真的隐藏了', panelOf('secSymbols').style.display === 'none');
 t.ok('5 个区块又全部 collapsed', COLLAPSIBLE_SECS.every((id) => dom.el(id).classList.contains('collapsed')));
 
 module.exports = t.done();

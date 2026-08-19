@@ -103,18 +103,23 @@ h2.sec.toggle{cursor:pointer;user-select:none;padding:4px 6px;border-radius:3px;
 h2.sec.toggle:hover{color:var(--ink-dim);border-color:var(--line);background:var(--panel-hi)}
 h2.sec.toggle::before{content:"▾";font-size:15px;font-weight:400;color:var(--ember)}
 h2.sec.toggle.collapsed::before{content:"▸"}
-h2.sec.toggle.collapsed + .panel{display:none}
-/* "花体"标题外面套了 .secHeadWrap 之后，.panel 不再是 h2 的下一个兄弟节点了
-   （中间隔了一层 wrapper），上面那条 + 选择器对它失效——这也是"点花体标题、
-   点全部收起都没反应"的真正原因：class 确实切换了，只是没有 CSS 规则再听它的。
-   补一条认 wrapper 的规则，JS 那边把 collapsed 类同时打在 wrapper 上。 */
-.secHeadWrap.collapsed + .panel{display:none}
+/* 面板的显示/隐藏不再靠"紧跟在标题后面"这条 CSS 选择器猜——它在真实浏览器里
+   反复出问题（套 wrapper 会打断它，打断之后还很难诊断），改成 JS 直接操作
+   每个 .panel 自己的 style.display（见 applyCollapsedSecs()），这里不用再配
+   对应的 + 选择器规则。 */
 /* 一键折叠按钮：不能塞进 <h2> 内部——那个标题的文字是靠 applyStaticI18n()
    整段 textContent= 覆盖的，换语言的时候会把塞进去的子元素一起冲掉（见上面
    ::before 那条注释，同一个坑）。改成外面套一层定位容器，按钮用 position:absolute
    叠在标题那条装饰虚线的右端，跟"花体"标题视觉上还是同一行，不占用额外的行高。 */
 .secHeadWrap{position:relative}
-.secAllBtn{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:1}
+/* 按钮原来用 top:50%+translateY(-50%) 相对整个 wrapper 垂直居中——这个"整个
+   wrapper 的高度"由标题文字撑出来，英文标题（"Fancy Text · Applies to the
+   selected segment"）比中文长得多，窄屏/手机上容易折成两行，wrapper 变高，
+   按钮居中的基准跟着变，按钮的实际落点就会跟着标题折不折行而移动。这解释了
+   "中文稳定、英文时好时坏"——中文短，几乎不会折行，英文折不折行跟当时窗口宽度/
+   缩放有关，看起来就跟运气一样。改成贴着顶部固定，不管标题折成一行还是两行，
+   按钮位置都不再跟着变。 */
+.secAllBtn{position:absolute;right:0;top:2px;z-index:1}
 
 label.f{display:block;font-size:11px;color:var(--ink-dim);margin-bottom:5px}
 textarea,input[type=text],select{width:100%;background:var(--void);color:var(--ink);
@@ -396,7 +401,7 @@ textarea.out.edited{border-color:var(--mc-gold)}
   <h2 class="sec" id="secStyles">花体 · 作用于当前选中的段</h2>
   <button id="collapseAllBtn" class="mini secAllBtn">全部收起</button>
 </div>
-<div class="panel">
+<div class="panel" id="secStylesPanel">
   <div class="note" id="styleNote" style="margin:0 0 10px">
     <span class="badge b-safe">实测可用</span> 游戏内辨识度高；
     <span class="badge b-dup">近似普通字 / 斜体</span> 能显示，但 8×16 点阵吃掉了字重和衬线差别；
@@ -412,14 +417,14 @@ textarea.out.edited{border-color:var(--mc-gold)}
 </div>
 
 <h2 class="sec" id="secSymbols">符号 · 插入当前选中的段</h2>
-<div class="panel">
+<div class="panel" id="secSymbolsPanel">
   <div class="note" id="symnote"></div>
   <div class="symgrid" id="symgrid"></div>
   <div class="symcats" id="symcats"></div>
 </div>
 
 <h2 class="sec" id="secWrap">包裹</h2>
-<div class="panel">
+<div class="panel" id="secWrapPanel">
   <div class="note" id="wrapHint" style="margin:0 0 8px">选择、编辑或创建你的包裹</div>
   <div class="wrapbuilder" id="wrapBuilder">
     <div class="row">
@@ -447,7 +452,7 @@ textarea.out.edited{border-color:var(--mc-gold)}
 
 
 <h2 class="sec" id="secGradient">渐变</h2>
-<div class="panel">
+<div class="panel" id="secGradientPanel">
   <div class="row" style="margin-bottom:12px">
     <button id="mode2" class="on">2 色</button>
     <button id="mode3">3 色</button>
@@ -502,7 +507,7 @@ textarea.out.edited{border-color:var(--mc-gold)}
 </div>
 
 <h2 class="sec" id="secPresets">预设</h2>
-<div class="panel">
+<div class="panel" id="secPresetsPanel">
   <div id="presetList" class="note" style="margin:0 0 10px;max-height:300px;overflow-y:auto">还没有预设。</div>
   <div class="row">
     <button class="mini" id="bSelAll">全选</button>
@@ -1652,21 +1657,24 @@ function loadCollapsedSecs(){
   }catch(e){}
 }
 function saveCollapsedSecs(){ store.set(COLLAPSE_KEY, JSON.stringify([...collapsedSecs])); }
-// 「花体」标题外面套了 .secHeadWrap（放一键折叠按钮），.panel 就不再是 h2 的
-// 下一个兄弟节点了——CSS 的 h2...collapsed + .panel 规则够不到它，得把 collapsed
-// 类同时打在 wrapper 上，配合上面新增的 .secHeadWrap.collapsed + .panel 规则。
-// 没套 wrapper 的另外 4 个区块，h.parentElement 不是 .secHeadWrap，直接跳过。
-function syncSecWrap(h, collapsed){
-  const wrap=h.parentElement;
-  if(wrap && wrap.classList && wrap.classList.contains('secHeadWrap')) wrap.classList.toggle('collapsed', collapsed);
-}
+/* 之前面板的显示/隐藏靠 CSS 的"紧跟在标题后面"选择器（h2...collapsed + .panel），
+   这条链路在真实浏览器里反复出问题——套了 .secHeadWrap 会打断它，而且诊断
+   下来发现：点击本身、状态记录（collapsedSecs）都是对的，诊断提示条报的数字
+   没错，但面板视觉上死活不跟着刷新，说明问题就出在"靠兄弟关系选择器去猜该
+   不该隐藏"这条路子本身不可靠，不是状态逻辑的问题。改成给每个 .panel 一个
+   固定 id，JS 直接读写它的 style.display——不依赖兄弟关系、不依赖 CSS 选择器
+   匹配，跟这份文件里其它所有显示/隐藏逻辑（.lore、.dockbody、#pv/#pvCanvas）
+   用的是同一套做法，不再是这个折叠功能自己单独一条脆弱的路。 */
+const SEC_PANEL_ID={secStyles:'secStylesPanel',secSymbols:'secSymbolsPanel',
+  secWrap:'secWrapPanel',secGradient:'secGradientPanel',secPresets:'secPresetsPanel'};
 function applyCollapsedSecs(){
   COLLAPSIBLE_SECS.forEach(id=>{
     const h=$(id); if(!h) return;
     h.classList.add('toggle');
     const collapsed=collapsedSecs.has(id);
     h.classList.toggle('collapsed', collapsed);
-    syncSecWrap(h, collapsed);
+    const panel=$(SEC_PANEL_ID[id]);
+    if(panel) panel.style.display=collapsed?'none':'';
     // 箭头够小，容易被忽略，原生 title 提示是免费的兜底——鼠标停久一点总能看到。
     // title 是独立属性，不会被 applyStaticI18n() 的 textContent= 冲掉，换语言时
     // 靠 applyLang() 里再调一次这个函数来更新文字。
@@ -1682,32 +1690,28 @@ function syncCollapseAllBtn(){
   b.textContent=allCollapsed?t('全部展开','Expand All'):t('全部收起','Collapse All');
   b.title=t('一键收起/展开花体、符号、包裹、渐变、预设这几个区块','Collapse/expand all these panels at once');
 }
+/* 点标题、点"全部收起"这两条路以前是各自读/写一遍 DOM 的 collapsed 类，
+   collapsedSecs 这个 Set 只是"顺便"同步一下——两条路互为镜像，一旦哪次漏同步
+   或者顺序不对，DOM 上的 class 和 Set 里记的就可能不一致，表现就是"点一次
+   没反应，点第二次才生效"这种诡异的滞后（用户在真实浏览器里点两次才能收起
+   手动展开过的区块，就是这类症状；这段代码看不出错，因为两条路各自单独看
+   都是对的，只有交替用过之后才会走出分歧）。改成只有 collapsedSecs 这一个
+   真相来源：两个点击处理函数都只改 Set，DOM 状态永远由 applyCollapsedSecs()
+   统一从 Set 重新算一遍，不再各自维护一份 classList 逻辑。 */
 COLLAPSIBLE_SECS.forEach(id=>{
   const h=$(id); if(!h) return;
   h.onclick=()=>{
-    const c=h.classList.toggle('collapsed');
-    syncSecWrap(h, c);
-    if(c) collapsedSecs.add(id); else collapsedSecs.delete(id);
+    if(collapsedSecs.has(id)) collapsedSecs.delete(id); else collapsedSecs.add(id);
     saveCollapsedSecs();
-    syncCollapseAllBtn();
+    applyCollapsedSecs();
   };
 });
-// 按钮是 .secHeadWrap 里 h2 的兄弟节点、不是 h2 的子节点，点它本来就不会冒泡
-// 触发 h2 自己的收起逻辑，不需要 stopPropagation。用 try/catch 兜底是因为上一版
-// 这个按钮在用户实际浏览器里点了完全没反应、代码看不出哪里错——先假设它可能在
-// 真实环境里抛了一个我这边测试环境测不出来的异常，用 toast 把异常内容显示出来，
-// 下次再"点了没反应"就不用再靠猜了。
 $('collapseAllBtn').onclick=()=>{
   try{
     const allCollapsed=COLLAPSIBLE_SECS.every(id=>collapsedSecs.has(id));
-    COLLAPSIBLE_SECS.forEach(id=>{
-      const h=$(id); if(!h) return;
-      h.classList.toggle('collapsed', !allCollapsed);
-      syncSecWrap(h, !allCollapsed);
-    });
     if(allCollapsed) collapsedSecs.clear(); else COLLAPSIBLE_SECS.forEach(id=>collapsedSecs.add(id));
     saveCollapsedSecs();
-    syncCollapseAllBtn();
+    applyCollapsedSecs();
   }catch(e){
     try{ toast('一键折叠出错：'+e.message); }catch(e2){}
   }
