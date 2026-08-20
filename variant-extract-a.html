@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>方案 A · 文字优先重排</title>
+<style>
+:root{
+  --void:#0a010c; --tip-bg:#100110; --tip-edge:#24015b; --panel:#17081f;
+  --panel-hi:#1f0d2a; --line:#2c1638; --ink:#e8dff0; --ink-dim:#9a8fa8;
+  --ink-faint:#6b5f7a; --ember:#f37c52; --deep:#2f5b8b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--void);color:var(--ink);font-family:"Inter","Segoe UI",system-ui,"Noto Sans SC",sans-serif;padding:20px 16px 60px}
+.wrap{max-width:640px;margin:0 auto}
+h1{font-size:15px;color:var(--ink-dim);font-weight:700;margin:0 0 4px}
+.tag{display:inline-block;font-size:11px;color:var(--ember);border:1px solid var(--ember);border-radius:999px;padding:2px 9px;margin-bottom:14px}
+.note{font-size:12px;color:var(--ink-faint);line-height:1.6;margin-bottom:16px}
+.panel{background:var(--panel);border:1px solid var(--line);padding:12px;margin-bottom:10px}
+.stepno{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;
+  background:var(--panel-hi);color:var(--ember);font-size:11px;font-weight:700;margin-right:7px}
+label.f{display:block;font-size:11px;color:var(--ink-dim);margin-bottom:6px}
+.fakeshot{background:var(--tip-bg);border:2px solid var(--tip-edge);height:70px;display:flex;align-items:center;justify-content:center;
+  font-size:20px;letter-spacing:.05em}
+.fakeshot span:nth-child(1){color:#f37c52}.fakeshot span:nth-child(2){color:#b76b70}
+.fakeshot span:nth-child(3){color:#7d6296}.fakeshot span:nth-child(4){color:#2f5b8b}
+.swrow{display:flex;gap:2px;margin-top:8px}
+.swrow div{flex:1;height:14px}
+input[type=text]{width:100%;background:var(--void);color:var(--ink);border:1px solid var(--line);padding:8px 9px;font-size:14px}
+input:focus{outline:none;border-color:var(--ember)}
+.repro{background:var(--tip-bg);border:2px solid var(--tip-edge);padding:14px;font-size:22px;min-height:34px;letter-spacing:.05em}
+.repro span{transition:color .1s}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{background:var(--void);border:1px solid var(--line);padding:5px 10px;font-size:12px;cursor:pointer;border-radius:3px}
+.chip:hover,.chip.on{border-color:var(--ember);color:var(--ember)}
+.fitrow{display:flex;align-items:center;gap:10px;background:var(--void);border:1px solid var(--line);padding:6px 9px;margin-top:6px;font-size:12px}
+.fitrow .bar{display:flex;flex:1;height:10px}
+.fitrow .bar div{flex:1}
+.fitrow button{background:var(--panel-hi);border:1px solid var(--line);color:var(--ink-dim);font-size:11px;padding:3px 8px;cursor:pointer}
+.mini{opacity:.55}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>方案 A · 文字优先重排</h1>
+  <span class="tag">改动最小：只调顺序，不新增结构</span>
+  <div class="note">思路：把"文字内容"和"花体"从最下面挪到"看到色阶"之后、"精细调色"之前——先让你尽快看到一version能用的复刻效果，微调颜色放在后面，因为微调本来就得先看到东西才知道要不要调。</div>
+
+  <div class="panel">
+    <label class="f"><span class="stepno">1</span>原图</label>
+    <div class="fakeshot"><span>T</span><span>a</span><span>k</span><span>o</span></div>
+    <div class="swrow">
+      <div style="background:#f37c52"></div><div style="background:#e57857"></div><div style="background:#c56b6e"></div>
+      <div style="background:#a56185"></div><div style="background:#7d6296"></div><div style="background:#5a5d8f"></div>
+      <div style="background:#2f5b8b"></div>
+    </div>
+  </div>
+
+  <div class="panel mini">
+    <label class="f"><span class="stepno">2</span>取到 17 个色阶 · 推荐 2 色（97.6%）</label>
+  </div>
+
+  <div class="panel" style="border-color:var(--ember)">
+    <label class="f"><span class="stepno">3</span>文字内容——挪到这里，靠前</label>
+    <input type="text" id="txt" value="Takodachi" placeholder="打上实际文字">
+    <div class="chips">
+      <div class="chip on" data-c="0">原样</div>
+      <div class="chip" data-c="1">粗体</div>
+      <div class="chip" data-c="2">斜体</div>
+    </div>
+  </div>
+
+  <div class="panel" style="border-color:var(--ember)">
+    <label class="f"><span class="stepno">4</span>复刻效果——紧跟在文字后面，输入即所见</label>
+    <div class="repro" id="repro"></div>
+  </div>
+
+  <div class="panel">
+    <label class="f"><span class="stepno">5</span>我的配色——微调放在能看到效果之后</label>
+    <div class="fitrow"><b style="width:36px">2 色</b><span class="bar"><div style="background:#f37c52"></div><div style="background:#2f5b8b"></div></span><button>选这个</button></div>
+    <div class="fitrow"><b style="width:36px">3 色</b><span class="bar"><div style="background:#f37c52"></div><div style="background:#7d6296"></div><div style="background:#2f5b8b"></div></span><button>选这个</button></div>
+  </div>
+</div>
+<script>
+const txt=document.getElementById('txt'), repro=document.getElementById('repro');
+function lerp(a,b,t){return Math.round(a+(b-a)*t);}
+function hex2rgb(h){h=h.slice(1);return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function rgb2hex(c){return '#'+c.map(v=>Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('');}
+function paint(){
+  const s=txt.value||' ', a=hex2rgb('#f37c52'), b=hex2rgb('#2f5b8b'), n=s.length;
+  repro.innerHTML=[...s].map((ch,i)=>{
+    const t=n>1?i/(n-1):0, col=rgb2hex([lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)]);
+    return `<span style="color:${col}">${ch===' '?'&nbsp;':ch}</span>`;
+  }).join('');
+}
+txt.addEventListener('input',paint); paint();
+document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+  document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on')); c.classList.add('on');
+});
+</script>
+</body>
+</html>

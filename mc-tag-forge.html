@@ -1633,7 +1633,10 @@ $('segInfoBtn').onclick=e=>{
   }
   pop.classList.toggle('show',willShow);
 };
-window.addEventListener('click',()=>$('segInfoPop').classList.remove('show'));
+window.addEventListener('click',()=>{
+  $('segInfoPop').classList.remove('show');
+  const sp=$('shotInfoPop'); if(sp) sp.classList.remove('show');
+});
 $('dockToggle').onclick=()=>{
   const c=$('dock').classList.toggle('collapsed');
   $('dockToggle').textContent=c?t('展开段落','Expand Segments'):t('收起段落','Collapse Segments');
@@ -2296,9 +2299,21 @@ function renderShotStyles(){
       esc(src)}<small>${t('原样','As-is')}</small></button>`+
     STYLES.map((st,i)=>`<button class="stchip${S.shotStyle===i?' on':''}" data-ss="${i}">${
       esc(apply(st,src))}<small>${t(st.n,st.en)}</small></button>`).join('');
-  box.querySelectorAll('[data-ss]').forEach(b=>b.onclick=()=>{
-    const i=+b.dataset.ss; S.shotStyle = i<0?null:i;
-    renderShotStyles(); renderShotCode(); renderRepro();});
+  box.querySelectorAll('[data-ss]').forEach(b=>{
+    b.onclick=()=>{
+      const i=+b.dataset.ss; S.shotStyle = i<0?null:i;
+      renderShotStyles(); renderShotCode(); renderRepro();
+    };
+    // 跟创作模式花体卡片同一个手法：悬停临时借用这个花体重画一下复刻效果，
+    // 不改真正选中的 S.shotStyle，移开鼠标就用 renderRepro() 按真实选中的重画回去。
+    b.onmouseenter=()=>{
+      const hover=+b.dataset.ss, orig=S.shotStyle;
+      S.shotStyle = hover<0?null:hover;
+      renderRepro();
+      S.shotStyle = orig;
+    };
+    b.onmouseleave=()=>renderRepro();
+  });
 }
 function renderShotCode(){
   const box=$('shotCode'); if(!box) return;
@@ -2472,13 +2487,16 @@ function renderShot(res, img){
       <span>${t('<b>在图上拖一个框</b>选出要取色的那一行','<b>Drag a box on the image</b> to select the line to sample')}</span>
       <button id="selAll">${t('用整张图','Use whole image')}</button>
       <span id="selInfo"></span>
+      <span class="infowrap">
+        <span class="infoicon" id="shotInfoBtn" title="${t('更多说明','More info')}">!</span>
+        <div class="tip-pop" id="shotInfoPop">${t('整张 tooltip 截图里名字、附魔、lore 全是文字，自动分行在有 GUI 背景时不可靠 —— 框选最准。',
+            'A full tooltip screenshot has the name, enchants, and lore all as text — auto row-detection is unreliable with a GUI background, so a manual selection is most accurate.')}
+          ${t('色带是识别出的每个色阶，按列位置对齐在图下面，可以逐个核对有没有错切。',
+            'The color strip shows each detected color stop aligned by column under the image, so you can check for mis-cuts one by one.')}
+          ${t('拿不准这张图适不适合自动拟合的话，用上面的「取色笔」直接点图取真实颜色，不用等它拟合。',
+            'Not sure this image is a good fit for auto-fitting? Use the "Eyedropper" above to sample real colors directly, no need to wait for the fit.')}</div>
+      </span>
     </div>
-    <div class="note">${t('整张 tooltip 截图里名字、附魔、lore 全是文字，自动分行在有 GUI 背景时不可靠 —— 框选最准。',
-        'A full tooltip screenshot has the name, enchants, and lore all as text — auto row-detection is unreliable with a GUI background, so a manual selection is most accurate.')}
-      ${t('色带是识别出的每个色阶，按列位置对齐在图下面，可以逐个核对有没有错切。',
-        'The color strip shows each detected color stop aligned by column under the image, so you can check for mis-cuts one by one.')}
-      ${t('拿不准这张图适不适合自动拟合的话，用上面的「取色笔」直接点图取真实颜色，不用等它拟合。',
-        'Not sure this image is a good fit for auto-fitting? Use the "Eyedropper" above to sample real colors directly, no need to wait for the fit.')}</div>
     <div class="note" style="margin-top:10px">
       ${t('缩放倍率','Scale')} <b>${scale}×</b>
       ｜ ${t('背景','Background')} <span style="color:${bg}">${bg.toUpperCase()}</span>
@@ -2541,6 +2559,19 @@ function renderShot(res, img){
       'Not implemented yet: recognizing text content, fancy-text styles, or emoji — that needs the server\'s resource-pack font atlas.')}</div>`;
   [1,2,4].forEach(z=>$('z'+z).onclick=()=>{ZOOM=z;drawSource();});
   $('selAll').onclick=()=>{S.shotCrop=null; reExtract();};
+  // 跟段落说明那个感叹号同一套逻辑（见 segInfoBtn），#shotOut 每次都整个重建，
+  // 这个按钮每次 renderShot() 都要重新绑一遍，不能只在顶层绑一次。
+  $('shotInfoBtn').onclick=e=>{
+    e.stopPropagation();
+    const pop=$('shotInfoPop'), willShow=!pop.classList.contains('show');
+    if(willShow){
+      const r=$('shotInfoBtn').getBoundingClientRect(), vw=window.innerWidth||1200;
+      const w=Math.min(260, vw*0.7);
+      let left=r.left; if(left+w>vw-8) left=vw-8-w; if(left<8) left=8;
+      pop.style.left=left+'px'; pop.style.top=(r.bottom+6)+'px';
+    }
+    pop.classList.toggle('show',willShow);
+  };
   const syncEyedropUI=()=>{
     $('eyedrop').classList.toggle('on',EYEDROP);
     $('eyedropBar').style.display=EYEDROP?'':'none';
@@ -2600,8 +2631,14 @@ function renderShot(res, img){
   S.shotPk=0;
   // 每次新图/新框选都从"推荐"那个自动结果重新起个"我的配色"草稿——旧的手调反正对不上新图了
   seedCustomFrom(bestN, fits.find(o=>o.n===bestN).fit);
-  /* 「推荐」和「已选」是两件事 —— 之前共用一个 class，选了别的之后旧的橙边不消失。 */
-  bindFitPicks();
+  /* 「推荐」和「已选」是两件事 —— 之前共用一个 class，选了别的之后旧的橙边不消失。
+     这里必须调 renderFitsList()（它内部会再调 bindFitPicks()）——之前只调了
+     bindFitPicks()，但 bindFitPicks() 只负责给 #fitsList 里已有的行绑点击事件，
+     不负责把行画出来。#fitsList 一开始是空的 div，画行的活只有 renderFitsList()
+     在做，结果上传截图后这一整块（2/3/4 色推荐 + 我的配色）一直是空的，
+     要等用户点了下面"我的配色"区的 2 色/3 色/4 色按钮（会调 setCustomN()，
+     它里面才有调 renderFitsList()）才第一次被画出来。 */
+  renderFitsList();
   renderShotEditor();
   renderCustomCuts();
   drag($('svShot'), (x,y)=>{

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>方案 C · 分步向导</title>
+<style>
+:root{
+  --void:#0a010c; --tip-bg:#100110; --tip-edge:#24015b; --panel:#17081f;
+  --panel-hi:#1f0d2a; --line:#2c1638; --ink:#e8dff0; --ink-dim:#9a8fa8;
+  --ink-faint:#6b5f7a; --ember:#f37c52; --deep:#2f5b8b; --mc-green:#55ff55;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--void);color:var(--ink);font-family:"Inter","Segoe UI",system-ui,"Noto Sans SC",sans-serif;padding:20px 16px 60px}
+.wrap{max-width:640px;margin:0 auto}
+h1{font-size:15px;color:var(--ink-dim);font-weight:700;margin:0 0 4px}
+.tag{display:inline-block;font-size:11px;color:var(--ember);border:1px solid var(--ember);border-radius:999px;padding:2px 9px;margin-bottom:14px}
+.note{font-size:12px;color:var(--ink-faint);line-height:1.6;margin-bottom:16px}
+.step{border:1px solid var(--line);margin-bottom:8px}
+.step .head{display:flex;align-items:center;gap:9px;padding:10px 12px;cursor:pointer;background:var(--panel)}
+.step.done .head{background:var(--panel-hi)}
+.step.active .head{border-left:3px solid var(--ember)}
+.step.locked .head{opacity:.4;cursor:not-allowed}
+.stepno{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;
+  background:var(--void);border:1px solid var(--line);color:var(--ink-faint);font-size:11px;font-weight:700;flex:0 0 20px}
+.step.done .stepno{background:var(--mc-green);color:#062906;border-color:var(--mc-green)}
+.step.active .stepno{background:var(--ember);color:#210b02;border-color:var(--ember)}
+.step .title{font-size:13px;font-weight:600}
+.step .sub{font-size:11px;color:var(--ink-faint);margin-left:auto}
+.step .body{padding:12px;border-top:1px solid var(--line);display:none}
+.step.active .body{display:block}
+.fakeshot{background:var(--tip-bg);border:2px solid var(--tip-edge);height:70px;display:flex;align-items:center;justify-content:center;
+  font-size:20px;letter-spacing:.05em}
+.fakeshot span:nth-child(1){color:#f37c52}.fakeshot span:nth-child(2){color:#b76b70}
+.fakeshot span:nth-child(3){color:#7d6296}.fakeshot span:nth-child(4){color:#2f5b8b}
+input[type=text]{width:100%;background:var(--void);color:var(--ink);border:1px solid var(--line);padding:8px 9px;font-size:14px}
+input:focus{outline:none;border-color:var(--ember)}
+.repro{background:var(--tip-bg);border:2px solid var(--tip-edge);padding:14px;font-size:22px;min-height:34px;letter-spacing:.05em;margin-top:10px}
+button.nextbtn{background:var(--ember);color:#210b02;border:none;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;margin-top:10px}
+.fitrow{display:flex;align-items:center;gap:10px;background:var(--void);border:1px solid var(--line);padding:6px 9px;margin-top:6px;font-size:12px}
+.fitrow .bar{display:flex;flex:1;height:10px}
+.fitrow .bar div{flex:1}
+.fitrow button{background:var(--panel-hi);border:1px solid var(--line);color:var(--ink-dim);font-size:11px;padding:3px 8px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>方案 C · 分步向导</h1>
+  <span class="tag">改动最大：整体变成"引导流程"</span>
+  <div class="note">思路：明确分成几步，一次只展开当前这一步，后面的步骤锁着看不到内容（比如没填文字之前，"配色微调"直接锁住点不开），逼着你按顺序走完，看不懂"接下来该干嘛"这种情况基本不会发生。做完的步骤收起来变成一行摘要。<b>代价</b>：逆推本来有些非线性操作（比如先用取色笔再决定要不要框选），硬分步可能会束手束脚，得给"跳过"留口子。</div>
+
+  <div class="step done" data-s="1">
+    <div class="head"><span class="stepno">✓</span><span class="title">上传截图</span><span class="sub">takodachi.png</span></div>
+  </div>
+
+  <div class="step done" data-s="2">
+    <div class="head"><span class="stepno">✓</span><span class="title">框选取色行</span><span class="sub">取到 17 个色阶</span></div>
+  </div>
+
+  <div class="step active" data-s="3">
+    <div class="head"><span class="stepno">3</span><span class="title">填写文字内容</span><span class="sub">这步做完才能看到效果</span></div>
+    <div class="body">
+      <div class="fakeshot"><span>T</span><span>a</span><span>k</span><span>o</span></div>
+      <input type="text" id="txt" placeholder="照着截图打上实际文字，比如 Takodachi" style="margin-top:10px">
+      <button class="nextbtn" id="next">填完了，看效果 →</button>
+    </div>
+  </div>
+
+  <div class="step locked" data-s="4">
+    <div class="head"><span class="stepno">4</span><span class="title">复刻效果 + 微调颜色</span><span class="sub">先完成第 3 步</span></div>
+    <div class="body">
+      <div class="repro" id="repro"></div>
+      <div class="fitrow"><b style="width:36px">2 色</b><span class="bar"><div style="background:#f37c52"></div><div style="background:#2f5b8b"></div></span><button>选这个</button></div>
+      <div class="fitrow"><b style="width:36px">3 色</b><span class="bar"><div style="background:#f37c52"></div><div style="background:#7d6296"></div><div style="background:#2f5b8b"></div></span><button>选这个</button></div>
+    </div>
+  </div>
+
+  <div class="step locked" data-s="5">
+    <div class="head"><span class="stepno">5</span><span class="title">复制代码</span><span class="sub">先完成第 4 步</span></div>
+  </div>
+</div>
+<script>
+function lerp(a,b,t){return Math.round(a+(b-a)*t);}
+function hex2rgb(h){h=h.slice(1);return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function rgb2hex(c){return '#'+c.map(v=>Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('');}
+document.getElementById('next').onclick=()=>{
+  const txt=document.getElementById('txt').value||'Takodachi';
+  const s3=document.querySelector('[data-s="3"]'), s4=document.querySelector('[data-s="4"]');
+  s3.classList.remove('active'); s3.classList.add('done');
+  s3.querySelector('.stepno').textContent='✓'; s3.querySelector('.sub').textContent=txt;
+  s4.classList.remove('locked'); s4.classList.add('active');
+  s4.querySelector('.sub').textContent='';
+  const a=hex2rgb('#f37c52'), b=hex2rgb('#2f5b8b'), n=txt.length;
+  document.getElementById('repro').innerHTML=[...txt].map((ch,i)=>{
+    const t=n>1?i/(n-1):0, col=rgb2hex([lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)]);
+    return `<span style="color:${col}">${ch===' '?'&nbsp;':ch}</span>`;
+  }).join('');
+};
+</script>
+</body>
+</html>

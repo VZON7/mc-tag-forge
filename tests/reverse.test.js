@@ -10,11 +10,11 @@ const path = require('path');
 const { install, loadTool } = require('./lib/dom');
 const { loadImage } = require('./lib/png');
 const t = require('./lib/t');
-install();
+const dom = install();
 const M = loadTool(['extractGlyphs', 'fitStops', 'detectScale', 'mapShotCuts',
-                    'S', 'shotCode', 'shotCells', 'customBounds', 'activeCustomStops']);
+                    'S', 'shotCode', 'shotCells', 'customBounds', 'activeCustomStops', 'renderShot']);
 const { extractGlyphs, fitStops, mapShotCuts, S, shotCode, shotCells,
-        customBounds, activeCustomStops } = M;
+        customBounds, activeCustomStops, renderShot } = M;
 
 const fix = (n) => loadImage(path.join(__dirname, 'fixtures', n));
 
@@ -48,6 +48,19 @@ for (const [file, label, wantN, wantFirst, wantLast, minMatch, crop] of CASES) {
   const chosen = fits.find((o) => o.n === wantN).f;
   t.ok(`吻合度 ≥ ${minMatch}%`, chosen.match >= minMatch, chosen.match.toFixed(2) + '%');
 }
+
+/* 上传截图之后，2/3/4 色推荐 + 「我的配色」这一块（#fitsList）必须立刻画出来，
+ * 不能等用户点了别的按钮才第一次出现——之前 renderShot() 只调了 bindFitPicks()
+ * （只负责绑点击事件），没调真正负责画内容的 renderFitsList()，导致 #fitsList
+ * 上传完截图后是空的，得点一下「我的配色」区的 2 色/3 色/4 色按钮（副作用里
+ * 才调了 renderFitsList()）才会冒出来。 */
+t.section('上传截图后 #fitsList 必须立刻有内容，不用等用户点别的按钮');
+const takoImg = fix('takodachi-2color.png');
+const rs = extractGlyphs(takoImg, null, { x: 0, y: 8, w: 450, h: 22 });
+renderShot(rs, takoImg);
+const fitsHTML = dom.el('fitsList').innerHTML;
+t.ok('renderShot 之后 #fitsList 不是空的', fitsHTML.length > 0, `长度 ${fitsHTML.length}`);
+t.ok('包含"我的配色"这一行', fitsHTML.includes('我的配色'));
 
 t.section('Takodachi 逐字色必须精确到字节（对照手工提取）');
 const tk = extractGlyphs(fix('takodachi-2color.png'), null, { x: 0, y: 8, w: 450, h: 22 });
