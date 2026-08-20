@@ -2449,6 +2449,14 @@ function renderCustomCuts(){
   });
 }
 
+/* 取色笔按钮之前只有文字，用户反馈"要长得像取色笔"——用内联 SVG 画一个滴管图标
+   （不用 emoji：emoji 在这个项目已经踩过字体不一致的坑，SVG 不依赖任何字体，
+   三个测试环境都长一个样）。stroke="currentColor" 跟着按钮自身的文字颜色走，
+   按钮变成 .on 高亮状态时图标颜色也跟着变，不用另外配色。 */
+const EYEDROP_ICON_SVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" '+
+  'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px">'+
+  '<path d="M19.5 4.5c1.5 1.5 1.5 4 0 5.5l-9 9-4 1 1-4 9-9c1.5-1.5 4-1.5 5.5 0z"/>'+
+  '<circle cx="6.2" cy="17.8" r="1.4" fill="currentColor" stroke="none"/></svg>';
 function renderShot(res, img){
   const {glyphs,scale,bg}=res;
   SHOT={img: img||(SHOT&&SHOT.img), w:res.w, hh:res.hh,
@@ -2472,8 +2480,7 @@ function renderShot(res, img){
       <button id="z1">1×</button><button id="z2">2×</button><button id="z4">4×</button>
       <span>${res.w}×${res.hh}px</span>
       <span class="grow" style="flex:1"></span>
-      <button id="eyedrop">${t('取色笔','Eyedropper')}</button>
-      <button id="reshot">${t('换一张','Change Image')}</button>
+      <button id="eyedrop">${EYEDROP_ICON_SVG}${t('取色笔','Eyedropper')}</button>
     </div>
     <div class="srcwrap"><canvas id="srcCanvas"></canvas>
       <div class="selrect" id="selRect"></div>
@@ -2626,7 +2633,6 @@ function renderShot(res, img){
       if(cr.w>2 && cr.h>2){ S.shotCrop=cr; reExtract(); } else drawSource();
     });
   }
-  $('reshot').onclick=()=>$('file').click();
   if(!S.shotFit || !(S.shotFit==='custom'||fits.some(o=>o.n===S.shotFit))) S.shotFit=bestN;
   S.shotPk=0;
   // 每次新图/新框选都从"推荐"那个自动结果重新起个"我的配色"草稿——旧的手调反正对不上新图了

@@ -40,6 +40,17 @@ button.nextbtn{background:var(--ember);color:#210b02;border:none;padding:7px 16p
 .fitrow .bar{display:flex;flex:1;height:10px}
 .fitrow .bar div{flex:1}
 .fitrow button{background:var(--panel-hi);border:1px solid var(--line);color:var(--ink-dim);font-size:11px;padding:3px 8px;cursor:pointer}
+.reprowrap{display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:center;margin-top:10px}
+.thumb{background:var(--tip-bg);border:1px solid var(--tip-edge);height:38px;display:flex;align-items:center;justify-content:center;font-size:9px}
+.thumb span:nth-child(1){color:#f37c52}.thumb span:nth-child(2){color:#b76b70}.thumb span:nth-child(3){color:#7d6296}.thumb span:nth-child(4){color:#2f5b8b}
+.thumblabel{font-size:9px;color:var(--ink-faint);text-align:center;margin-top:2px}
+.pickerfake{display:flex;gap:10px;margin-top:10px}
+.sv{width:90px;height:60px;background:linear-gradient(to right,#fff,#f37c52);position:relative}
+.sv::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,#000,transparent)}
+.hue{width:14px;height:60px;background:linear-gradient(to bottom,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}
+textarea{width:100%;background:var(--void);color:var(--ink);border:1px solid var(--line);padding:8px 9px;font-family:ui-monospace,Consolas,monospace;font-size:12px;min-height:40px;margin-top:10px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{background:var(--void);border:1px solid var(--line);padding:5px 10px;font-size:12px;cursor:pointer;border-radius:3px}
 </style>
 </head>
 <body>
@@ -68,14 +79,27 @@ button.nextbtn{background:var(--ember);color:#210b02;border:none;padding:7px 16p
   <div class="step locked" data-s="4">
     <div class="head"><span class="stepno">4</span><span class="title">复刻效果 + 微调颜色</span><span class="sub">先完成第 3 步</span></div>
     <div class="body">
-      <div class="repro" id="repro"></div>
+      <div class="reprowrap">
+        <div><div class="thumb"><span>T</span><span>a</span><span>k</span><span>o</span></div><div class="thumblabel">原图</div></div>
+        <div class="repro" id="repro" style="margin-top:0"></div>
+      </div>
       <div class="fitrow"><b style="width:36px">2 色</b><span class="bar"><div style="background:#f37c52"></div><div style="background:#2f5b8b"></div></span><button>选这个</button></div>
       <div class="fitrow"><b style="width:36px">3 色</b><span class="bar"><div style="background:#f37c52"></div><div style="background:#7d6296"></div><div style="background:#2f5b8b"></div></span><button>选这个</button></div>
+      <label style="display:block;font-size:11px;color:var(--ink-dim);margin-top:10px">我的配色调色盘</label>
+      <div class="pickerfake"><div class="sv"></div><div class="hue"></div></div>
+      <button class="nextbtn" id="next2">配色定了，去拿代码 →</button>
     </div>
   </div>
 
   <div class="step locked" data-s="5">
-    <div class="head"><span class="stepno">5</span><span class="title">复制代码</span><span class="sub">先完成第 4 步</span></div>
+    <div class="head"><span class="stepno">5</span><span class="title">代码区</span><span class="sub">先完成第 4 步</span></div>
+    <div class="body">
+      <textarea readonly id="codeOut"></textarea>
+      <div class="chips"><div class="chip">复制完整代码</div><div class="chip">套用配色去创作</div></div>
+      <label style="display:block;font-size:11px;color:var(--ember);margin-top:10px;cursor:pointer" id="advT">▸ 详细数据（逐字实测色值）</label>
+      <div style="display:none;font-family:ui-monospace,Consolas,monospace;font-size:11px;color:var(--ink-faint);margin-top:6px" id="hexlist">
+        F37C52 · E57857 · 2F5B8B</div>
+    </div>
   </div>
 </div>
 <script>
@@ -94,6 +118,19 @@ document.getElementById('next').onclick=()=>{
     const t=n>1?i/(n-1):0, col=rgb2hex([lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)]);
     return `<span style="color:${col}">${ch===' '?'&nbsp;':ch}</span>`;
   }).join('');
+  document.getElementById('codeOut').value=`{#f37c52>}${txt.slice(0,Math.ceil(n/2))}{#2f5b8b<}${txt.slice(Math.ceil(n/2))}`;
+};
+document.getElementById('next2').onclick=()=>{
+  const s4=document.querySelector('[data-s="4"]'), s5=document.querySelector('[data-s="5"]');
+  s4.classList.remove('active'); s4.classList.add('done');
+  s4.querySelector('.stepno').textContent='✓'; s4.querySelector('.sub').textContent='';
+  s5.classList.remove('locked'); s5.classList.add('active');
+  s5.querySelector('.sub').textContent='';
+};
+document.getElementById('advT').onclick=function(){
+  const box=document.getElementById('hexlist');
+  const on=box.style.display!=='block'; box.style.display=on?'block':'none';
+  this.textContent=(on?'▾':'▸')+' 详细数据（逐字实测色值）';
 };
 </script>
 </body>

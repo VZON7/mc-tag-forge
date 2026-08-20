@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>方案 A · 文字优先重排（完整 8 区块版）</title>
+<title>方案 D · 重排 + 复刻旁带原图缩略图</title>
 <style>
 :root{
   --void:#0a010c; --tip-bg:#100110; --tip-edge:#24015b; --panel:#17081f;
@@ -16,24 +16,16 @@ h1{font-size:15px;color:var(--ink-dim);font-weight:700;margin:0 0 4px}
 .tag{display:inline-block;font-size:11px;color:var(--ember);border:1px solid var(--ember);border-radius:999px;padding:2px 9px;margin-bottom:14px}
 .note{font-size:12px;color:var(--ink-faint);line-height:1.6;margin-bottom:16px}
 .panel{background:var(--panel);border:1px solid var(--line);padding:12px;margin-bottom:10px}
-.panel.cut{border-color:var(--ember)}
-.stepno{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;
-  background:var(--panel-hi);color:var(--ember);font-size:11px;font-weight:700;margin-right:7px;flex:0 0 18px}
 label.f{display:flex;align-items:center;font-size:11px;color:var(--ink-dim);margin-bottom:6px}
 .why{font-size:10.5px;color:var(--ink-faint);font-weight:400;margin-left:auto}
 .fakeshot{background:var(--tip-bg);border:2px solid var(--tip-edge);height:70px;display:flex;align-items:center;justify-content:center;
-  font-size:20px;letter-spacing:.05em;position:relative}
+  font-size:20px;letter-spacing:.05em}
 .fakeshot span:nth-child(1){color:#f37c52}.fakeshot span:nth-child(2){color:#b76b70}
 .fakeshot span:nth-child(3){color:#7d6296}.fakeshot span:nth-child(4){color:#2f5b8b}
-.swrow{display:flex;gap:2px;margin-top:3px}
-.swrow div{flex:1;height:10px;cursor:default}
 .toprow{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:11px;color:var(--ink-faint)}
 .toprow button{background:var(--panel-hi);border:1px solid var(--line);color:var(--ink-dim);font-size:11px;padding:4px 9px;cursor:pointer}
-.toprow button.on{border-color:var(--ember);color:var(--ember)}
-.strike{text-decoration:line-through;opacity:.35}
 input[type=text]{width:100%;background:var(--void);color:var(--ink);border:1px solid var(--line);padding:8px 9px;font-size:14px}
 input:focus{outline:none;border-color:var(--ember)}
-.repro{background:var(--tip-bg);border:2px solid var(--tip-edge);padding:14px;font-size:22px;min-height:34px;letter-spacing:.05em}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .chip{background:var(--void);border:1px solid var(--line);padding:5px 10px;font-size:12px;cursor:pointer;border-radius:3px}
 .chip:hover,.chip.on{border-color:var(--ember);color:var(--ember)}
@@ -41,6 +33,11 @@ input:focus{outline:none;border-color:var(--ember)}
 .fitrow .bar{display:flex;flex:1;height:10px}
 .fitrow .bar div{flex:1}
 .fitrow button{background:var(--panel-hi);border:1px solid var(--line);color:var(--ink-dim);font-size:11px;padding:3px 8px;cursor:pointer}
+.reprowrap{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center}
+.thumb{background:var(--tip-bg);border:1px solid var(--tip-edge);height:40px;display:flex;align-items:center;justify-content:center;font-size:9px;letter-spacing:.02em;overflow:hidden}
+.thumb span:nth-child(1){color:#f37c52}.thumb span:nth-child(2){color:#b76b70}.thumb span:nth-child(3){color:#7d6296}.thumb span:nth-child(4){color:#2f5b8b}
+.thumblabel{font-size:9px;color:var(--ink-faint);text-align:center;margin-top:2px}
+.repro{background:var(--tip-bg);border:2px solid var(--tip-edge);padding:12px;font-size:20px;min-height:30px;letter-spacing:.05em}
 .pickerfake{display:flex;gap:10px;margin-top:8px}
 .sv{width:100px;height:70px;background:linear-gradient(to right,#fff,#f37c52);position:relative}
 .sv::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,#000,transparent)}
@@ -54,60 +51,55 @@ textarea{width:100%;background:var(--void);color:var(--ink);border:1px solid var
 </head>
 <body>
 <div class="wrap">
-  <h1>方案 A · 文字优先重排（完整 8 区块版）</h1>
-  <span class="tag">按你列的全部 8 个区块重新过了一遍</span>
+  <h1>方案 D · 重排 + 复刻旁带原图缩略图</h1>
+  <span class="tag">比方案 B 轻，不用吸顶结构</span>
   <div class="note">
-    "必须做的事"排前面，"可选的精修"排后面：原图 → 色阶推荐 → <b>文字内容+花体</b> → <b>复刻效果</b> → 我的配色微调 → 代码。<br>
-    "换一张"删掉了——顶部本来就有常驻的上传区，这个按钮除了触发同一个文件选择框，没有别的作用。<br>
-    "逐字实测"改成可展开的"详细数据"，默认收起——它和图片下面那条色带（swStrip）其实是同一份数据的两种呈现，平时不需要，留给想核对具体色值的人。
+    跟方案 A 一样重排顺序（文字提前），但"复刻效果"那一格左边永远贴一张原图的小缩略图——不用整块吸顶，只是在真正需要对比的那一刻，把原图的样子也放在旁边，不用再往上滚。工程量比方案 B 小（不用处理吸顶层叠、不用担心窄屏怎么摆两栏），但灵活性也差一点——缩略图很小，看细节还是得滚上去看大图。
   </div>
 
   <div class="panel">
-    <label class="f"><span class="stepno">1</span>原图
-      <span class="why">取色笔留在这——它要点在图上，离图远了不好用</span></label>
+    <label class="f">原图</label>
     <div class="toprow">
       <button>1×</button><button class="on">2×</button><button>4×</button>
       <span style="flex:1"></span>
-      <button id="eyedropBtn">取色笔</button>
-      <span class="strike" title="删掉：顶部常驻上传区已经能换图">换一张</span>
+      <button id="eyedropBtn">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M19.5 4.5c1.5 1.5 1.5 4 0 5.5l-9 9-4 1 1-4 9-9c1.5-1.5 4-1.5 5.5 0z"/><circle cx="6.2" cy="17.8" r="1.4" fill="currentColor" stroke="none"/></svg>取色笔
+      </button>
     </div>
     <div class="fakeshot"><span>T</span><span>a</span><span>k</span><span>o</span></div>
-    <div class="swrow">
-      <div style="background:#f37c52" title="#F37C52"></div><div style="background:#e57857" title="#E57857"></div>
-      <div style="background:#c56b6e" title="#C56B6E"></div><div style="background:#a56185" title="#A56185"></div>
-      <div style="background:#7d6296" title="#7D6296"></div><div style="background:#5a5d8f" title="#5A5D8F"></div>
-      <div style="background:#2f5b8b" title="#2F5B8B"></div>
-    </div>
   </div>
 
   <div class="panel">
-    <label class="f"><span class="stepno">2</span>2/3/4 色推荐<span class="why">取到 17 个色阶</span></label>
+    <label class="f">2/3/4 色推荐<span class="why">取到 17 个色阶</span></label>
     <div class="fitrow"><b style="width:34px">2 色</b><span class="bar"><div style="background:#f37c52"></div><div style="background:#2f5b8b"></div></span><span style="font-size:11px;color:var(--ink-faint)">97.6%</span><button>选这个</button></div>
-    <div class="fitrow"><b style="width:34px">3 色</b><span class="bar"><div style="background:#f37c52"></div><div style="background:#7d6296"></div><div style="background:#2f5b8b"></div></span><span style="font-size:11px;color:var(--ink-faint)">99.1%</span><button>选这个</button></div>
   </div>
 
-  <div class="panel cut">
-    <label class="f"><span class="stepno">3</span>文字内容 + 花体</label>
+  <div class="panel" style="border-color:var(--ember)">
+    <label class="f">文字内容 + 花体</label>
     <input type="text" id="txt" value="Takodachi" placeholder="打上实际文字">
     <div class="chips">
-      <div class="chip on" data-c="0">原样</div>
-      <div class="chip" data-c="1">粗体</div>
-      <div class="chip" data-c="2">斜体</div>
+      <div class="chip on" data-c="0">原样</div><div class="chip" data-c="1">粗体</div><div class="chip" data-c="2">斜体</div>
     </div>
   </div>
 
-  <div class="panel cut">
-    <label class="f"><span class="stepno">4</span>复刻效果</label>
-    <div class="repro" id="repro"></div>
+  <div class="panel" style="border-color:var(--ember)">
+    <label class="f">复刻效果<span class="why">旁边带一张原图缩略图，不用滚上去</span></label>
+    <div class="reprowrap">
+      <div>
+        <div class="thumb"><span>T</span><span>a</span><span>k</span><span>o</span></div>
+        <div class="thumblabel">原图</div>
+      </div>
+      <div class="repro" id="repro"></div>
+    </div>
   </div>
 
   <div class="panel">
-    <label class="f"><span class="stepno">5</span>我的配色调色盘<span class="why">微调，看到效果之后再做</span></label>
+    <label class="f">我的配色调色盘<span class="why">微调，看到效果之后再做</span></label>
     <div class="pickerfake"><div class="sv"></div><div class="hue"></div></div>
   </div>
 
   <div class="panel">
-    <label class="f"><span class="stepno">6</span>代码区</label>
+    <label class="f">代码区</label>
     <textarea readonly>{#f37c52>}Tak{#2f5b8b<}odachi</textarea>
     <div class="chips" style="margin-top:8px">
       <div class="chip">复制完整代码</div><div class="chip">重新生成</div><div class="chip">套用配色去创作</div>
